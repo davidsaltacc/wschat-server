@@ -141,4 +141,6 @@ vite.config.ts.timestamp-*
 # WSChat specific
 
 certs
+# convenience folder for storing auth states of different modules
+auths 
 TOKENS

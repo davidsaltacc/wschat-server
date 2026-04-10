@@ -1,14 +1,41 @@
-import { Chat, ChatModule, DisconnectReason, Message } from "../chats";
-import { Client, GroupDMChannel } from "discord.js-selfbot-youtsuho-v13";
+"use strict";
 
-class DiscordChatModule extends ChatModule {
+import { Chat, ChatModule, DisconnectReason, Message } from "../chats.js";
+import { Client, GroupDMChannel } from "discord.js-selfbot-youtsuho-v13";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
+import readline from "readline";
+
+export class DiscordChatModule extends ChatModule {
 
     constructor(token) {
         super();
         this.token = token;
     }
 
-    openConnection() {
+    async authenticate() {
+
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        const token = await new Promise((res, rej) => {
+            rl.question("Please input your discord token. If you do not know how to obtain it, visit\nhttps://gist.github.com/XielQs/90ab13b0c61c6888dae329199ea6aff3\n\nTOKEN: ", obtained => {
+                rl.close();
+                res(obtained);
+            });
+        });
+
+        if (!existsSync("auths")) {
+            mkdirSync("auths");
+        }
+        if (!existsSync("auths/discord_token.txt")) {
+            writeFileSync("auths/discord_token.txt", token)
+        }
+
+    }
+
+    openConnection(onSuccess, onError) {
 
         this.client = new Client();
 
@@ -24,7 +51,7 @@ class DiscordChatModule extends ChatModule {
             this._fireEvent("messageUpdated", newMessage.id, newMessage.content);
         });
 
-        this.client.login(token);
+        this.client.login(token).catch(onError).then(onSuccess);
 
     }
 

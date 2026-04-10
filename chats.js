@@ -52,6 +52,10 @@ export class ChatModule {
         this.events = {};
     }
 
+    async authenticate() { // authenticate somehow and save authentication state to disk somehow, will be called seperate from main program
+        throw new Error("authenticate is not implemented");
+    }
+
     on(event, handler) {
         this.events[event] ??= [];
         this.events[event].push(handler);
@@ -69,7 +73,7 @@ export class ChatModule {
         });
     }
 
-    openConnection() {
+    openConnection(onSuccess, onError) {
         throw new Error("openConnection is not implemented");
     }
 

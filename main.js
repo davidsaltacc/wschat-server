@@ -1,48 +1,12 @@
 "use strict";
 
-import { authenticate, initAuth } from "./auth";
+import { PORT, USE_HTTP, ENABLED_MODULES } from "./config.js";
+import { authenticate, initAuth } from "./auth.js";
+import { logger, httpLogger } from "./logger.js";
 import { createServer } from "https";
 import { createServer as createInsecureServer } from "http";
 import { WebSocketServer } from "ws";
 import { readFileSync } from "fs";
-import { pino } from "pino";
-import { pinoHttp } from "pino-http";
-import pretty from "pino-pretty";
-
-export const logger = pino({
-    transport: {
-        target: "pino-pretty",
-        options: {
-            colorize: pretty.isColorSupported
-        }
-    }
-});
-
-const httpLogger = pinoHttp({
-    logger
-});
-
-logger.info("Reading config file");
-
-const configFile = readFileSync("CONFIG", { encoding: "utf8" });
-
-if (!configFile) {
-    throw new Error("CONFIG file not present.");
-}
-
-const config = {};
-
-for (let line of configFile.split("\n")) {
-    if (!line.trimStart().startsWith("#")) {
-        let pair = line.split("=");
-        if (pair.length > 1) {
-            config[pair[0]] = pair.slice(1).join("=").trim();
-        }
-    }
-}
-
-const PORT = parseInt(config["port"]);
-const USE_HTTP = config["useHTTP"] === "true";
 
 initAuth();
 

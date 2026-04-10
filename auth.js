@@ -1,6 +1,6 @@
 "use strict";
 
-import { logger } from "./main";
+import { logger } from "./logger.js";
 import { createHash, timingSafeEqual } from "crypto";
 
 const tokens = [];
