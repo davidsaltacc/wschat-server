@@ -1,20 +1,21 @@
 {
-  "name": "wschat",
+  "name": "wschat-server",
   "version": "0.1.0",
   "description": "simple unified websocket api for multiple messaging platforms",
-  "homepage": "https://github.com/davidsaltacc/wschat#readme",
+  "homepage": "https://github.com/davidsaltacc/wschat-server#readme",
   "bugs": {
-    "url": "https://github.com/davidsaltacc/wschat/issues"
+    "url": "https://github.com/davidsaltacc/wschat-server/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidsaltacc/wschat.git"
+    "url": "git+https://github.com/davidsaltacc/wschat-server.git"
   },
   "license": "MIT",
   "author": "justacoder",
   "type": "module",
   "main": "main.js",
   "dependencies": {
+    "discord.js-selfbot-youtsuho-v13": "^3.7.2",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "pino-pretty": "^13.1.3",

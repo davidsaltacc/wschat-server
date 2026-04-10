@@ -4,3 +4,5 @@
 # don't ask why that's the default port
 port=33852
 
+# DO NOT TOUCH - only intended use is in development environments and will reduce security!
+useHTTP=false
