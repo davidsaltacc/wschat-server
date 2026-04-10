@@ -1,0 +1,6 @@
+# config file for wschat
+# comments can be made with a # (has to be first character!)
+
+# don't ask why that's the default port
+port=33852
+
