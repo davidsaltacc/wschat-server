@@ -144,3 +144,4 @@ certs
 # convenience folder for storing auth states of different modules
 auths 
 TOKENS
+wschat-server.code-workspace

@@ -1,0 +1,42 @@
+STRUCTURE S2C & C2S MESSAGE {
+    "type": "...",
+    "data". {
+        ...
+    }
+}
+
+STRUCTURE Message {
+    "messageId": "...", 
+    "authorId": "...", 
+    "authorDisplayName", "...", 
+    "content": "...", 
+    "date": int
+}
+
+C2S type=chatOpened data={
+    "chatId": "..."|null
+}
+
+C2S type=messageSent data={
+    "chatId": "...",
+    "module": "...",
+    "content": "..."
+}
+
+TODO 1. these, then messageSent
+
+C2S type=requestChats data={}
+
+-> RES S2C type=chatList data={
+    chats: [
+        {
+            "chatId": "...",
+            "chatName": "...",
+            "module": "...",
+            "messages": [
+                Message...
+            ]
+        },
+        ...
+    ]
+}

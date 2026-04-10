@@ -1,6 +1,6 @@
 "use strict";
 
-import { PORT, USE_HTTP, ENABLED_MODULES } from "./config.js";
+import { PORT, USE_HTTP, ENABLED_MODULES as modules } from "./config.js";
 import { authenticate, initAuth } from "./auth.js";
 import { logger, httpLogger } from "./logger.js";
 import { createServer } from "https";
@@ -32,9 +32,25 @@ wss.on("connection", function connection(ws, request) {
 
     ws.on("error", logger.error);
   
-    ws.on("message", function message(data) {
+    ws.on("message", function message(message) {
         
+        const response = JSON.parse(message.toString("utf-8"));
+        const type = response.type;
+        const data = response.data;
+
+        switch (type) {
+            case "chatOpened": {
+                ws.openChat = data.chatId;
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+
     });
+
+    ws.openChat = null;
 
 });
 
@@ -77,6 +93,34 @@ server.on("upgrade", function upgrade(request, socket, head) {
 
     });
 });
+
+export function anyClientsOnline() {
+    return wss.clients.size > 0;
+}
+
+export function anyClientOpenedChat(chatId) {
+    if (!anyClientsOnline()) {
+        return false;
+    }
+    for (const ws of wss.clients) {
+        if (ws.openChat === chatId) {
+            return true;
+        }
+    }
+    return false;
+}
+
+logger.info("Loading Modules");
+
+for (const module of modules) {
+    try {
+        await new Promise((res, rej) => {
+            module.openConnection(res, rej);
+        });
+    } catch (e) {
+        logger.error(e);
+    }
+}
 
 server.listen(PORT);
 logger.info("Server listening on port " + PORT);

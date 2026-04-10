@@ -1,16 +1,12 @@
 "use strict";
 
-import { Chat, ChatModule, DisconnectReason, Message } from "../chats.js";
+import { Chat, ChatModule, DisconnectReason, Message, Person } from "../chats.js";
 import { Client, GroupDMChannel } from "discord.js-selfbot-youtsuho-v13";
-import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import readline from "readline";
+import { anyClientOpenedChat } from "../main.js";
 
 export class DiscordChatModule extends ChatModule {
-
-    constructor(token) {
-        super();
-        this.token = token;
-    }
 
     async authenticate() {
 
@@ -20,7 +16,7 @@ export class DiscordChatModule extends ChatModule {
         });
 
         const token = await new Promise((res, rej) => {
-            rl.question("Please input your discord token. If you do not know how to obtain it, visit\nhttps://gist.github.com/XielQs/90ab13b0c61c6888dae329199ea6aff3\n\nTOKEN: ", obtained => {
+            rl.question("Please input your discord token. If you do not know how to obtain it, visit\nhttps://github.com/aiko-chan-ai/discord.js-selfbot-v13?#get-token-\n\nTOKEN: ", obtained => {
                 rl.close();
                 res(obtained);
             });
@@ -30,12 +26,21 @@ export class DiscordChatModule extends ChatModule {
             mkdirSync("auths");
         }
         if (!existsSync("auths/discord_token.txt")) {
-            writeFileSync("auths/discord_token.txt", token)
+            writeFileSync("auths/discord_token.txt", token);
         }
 
     }
 
     openConnection(onSuccess, onError) {
+
+        let token;
+
+        if (!existsSync("auths/discord_token.txt")) {
+            onError("Authentication not set up");
+            return;
+        } else {
+            token = readFileSync("auths/discord_token.txt");
+        }
 
         this.client = new Client();
 
@@ -45,6 +50,9 @@ export class DiscordChatModule extends ChatModule {
 
         this.client.on("messageCreate", async message => {
             this._fireEvent("messageReceived", new Message(message.id, message.author.id, message.author.displayName, message.content, message.createdAt));
+            if (anyClientOpenedChat(message.channel.id)) {
+                message.markRead();
+            }
         });
 
         this.client.on("messageUpdate", async (_, newMessage) => {
@@ -75,11 +83,40 @@ export class DiscordChatModule extends ChatModule {
 
         for (const dm of dms) {
             let isGroup = dm instanceof GroupDMChannel;
-            let lastMessage = new Message(dm[1].lastMessage.author.id, dm[1].lastMessage.author.displayName, dm[1].lastMessage.content, dm[1].lastMessage.createdAt);
+            let lastMessage = new Message(dm[1].lastMessage.id, dm[1].lastMessage.author.id, dm[1].lastMessage.author.displayName, dm[1].lastMessage.content, dm[1].lastMessage.createdAt);
             chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : dm[1].recipient.displayName, lastMessage));
         }
 
         return chats;
+
+    }
+
+    async fetchMessagesInChat(channelId) {
+
+        let messages = [];
+
+        let channel = await this.client.channels.fetch(channelId);
+        let fetchedMessages = channel.messages.fetch({ limit: 100 });
+
+        for (const message of fetchedMessages) {
+            messages.push(new Message(message.id, message.author.id, message.author.displayName, message.content, message.createdAt));
+        }
+
+        return messages;
+
+    }
+
+    async fetchUserInfo(userId) {
+
+        let fetchedUser = await this.client.users.fetch(userId);
+        return new Person(userId, fetchedUser.displayName, fetchedUser.username, "", fetchedUser.createdAt);
+        // TODO if the selfbot api can fetch user bio's
+
+    }
+
+    sendMessage(channelId, content) {
+
+        this.client.channels.fetch(channelId).then(channel => channel.send(content));
 
     }
 

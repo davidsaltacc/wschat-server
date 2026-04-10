@@ -93,7 +93,7 @@ export class ChatModule {
         throw new Error("fetchUserInfo is not implemented");
     }
 
-    sendMessage(content) {
+    sendMessage(chatId, content) {
         throw new Error("sendMessage is not implemented");
     }
 
