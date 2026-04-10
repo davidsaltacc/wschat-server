@@ -1,0 +1,23 @@
+{
+  "name": "wschat",
+  "version": "0.1.0",
+  "description": "simple unified websocket api for multiple messaging platforms",
+  "homepage": "https://github.com/davidsaltacc/wschat#readme",
+  "bugs": {
+    "url": "https://github.com/davidsaltacc/wschat/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidsaltacc/wschat.git"
+  },
+  "license": "MIT",
+  "author": "justacoder",
+  "type": "module",
+  "main": "main.js",
+  "dependencies": {
+    "ws": "^8.20.0"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.1.0"
+  }
+}
