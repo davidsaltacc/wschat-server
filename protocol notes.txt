@@ -23,6 +23,19 @@ C2S type=messageSent data={
     "content": "..."
 }
 
+S2C type=messageReceived data={
+    "chatId": "...",
+    "module": "...",
+    "content": "..."
+}
+
+S2C type=messageUpdated data={
+    "chatId": "...",
+    "module": "...",
+    "messageId": "...",
+    "newContent": "..."
+}
+
 C2S type=requestChats data={}
 
 -> RES S2C type=chatList data={
@@ -47,3 +60,20 @@ C2S type=requestMessages data={
         Message...
     ]
 }
+
+C2S type=requestUserInfo data={
+    "id": "...",
+    "module": "..."
+}
+
+-> RES S2C type=userInfo data={
+    info: {
+        "id": "...",
+        "displayName": "...",
+        "uniqueName": "...",
+        "biography": "...",
+        "creationDate": int
+    }
+}
+
+C2S type=disconnect data={}

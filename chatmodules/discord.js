@@ -49,14 +49,14 @@ export class DiscordChatModule extends ChatModule {
         });
 
         this.client.on("messageCreate", async message => {
-            this._fireEvent("messageReceived", new Message(message.id, message.author.id, message.author.displayName, message.content, message.createdAt));
+            this._fireEvent("messageReceived", new Message(message.id, message.channel.id, message.author.id, message.author.displayName, message.content, message.createdAt));
             if (anyClientOpenedChat(message.channel.id)) {
                 message.markRead();
             }
         });
 
         this.client.on("messageUpdate", async (_, newMessage) => {
-            this._fireEvent("messageUpdated", newMessage.id, newMessage.content);
+            this._fireEvent("messageUpdated", newMessage.id, newMessage.channel.id, newMessage.content);
         });
 
         this.client.login(token).catch(onError).then(onSuccess);
@@ -83,7 +83,7 @@ export class DiscordChatModule extends ChatModule {
 
         for (const dm of dms) {
             let isGroup = dm instanceof GroupDMChannel;
-            let lastMessage = new Message(dm[1].lastMessage.id, dm[1].lastMessage.author.id, dm[1].lastMessage.author.displayName, dm[1].lastMessage.content, dm[1].lastMessage.createdAt);
+            let lastMessage = new Message(dm[1].lastMessage.id, dm[1].id, dm[1].lastMessage.author.id, dm[1].lastMessage.author.displayName, dm[1].lastMessage.content, dm[1].lastMessage.createdAt);
             chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : dm[1].recipient.displayName, lastMessage));
         }
 
@@ -99,7 +99,7 @@ export class DiscordChatModule extends ChatModule {
         let fetchedMessages = channel.messages.fetch({ limit: 100 });
 
         for (const message of fetchedMessages) {
-            messages.push(new Message(message.id, message.author.id, message.author.displayName, message.content, message.createdAt));
+            messages.push(new Message(message.id, channelId, message.author.id, message.author.displayName, message.content, message.createdAt));
         }
 
         return messages;

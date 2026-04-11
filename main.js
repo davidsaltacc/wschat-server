@@ -39,6 +39,10 @@ wss.on("connection", function connection(ws, request) {
         const data = response.data;
 
         switch (type) {
+            case "disconnect": {
+                ws.close(1001);
+                break;
+            }
             case "chatOpened": {
                 ws.openChat = data.chatId;
                 break;
@@ -123,6 +127,32 @@ wss.on("connection", function connection(ws, request) {
 
                 break;
             }
+            case "requestUserInfo": {
+                
+                for (const module of modules) {
+                    if (module.getId() == data.module) {
+                        module.fetchUserInfo(data.id).then(fetchedUserData => {
+
+                            ws.send(JSON.stringify({
+                                type: "userInfo",
+                                data: {
+                                    info: {
+                                        id: data.id,
+                                        displayName: fetchedUserData.displayName,
+                                        uniqueName: fetchedUserData.uniqueName,
+                                        biography: fetchedUserData.biography,
+                                        creationDate: fetchedUserData.creationDate.getTime()
+                                    }
+                                }
+                            }));
+
+                        })
+                        break;
+                    }
+                }
+
+                break;
+            }
             default: {
                 break;
             }
@@ -196,6 +226,37 @@ for (const module of modules) {
     try {
         await new Promise((res, rej) => {
             module.openConnection(res, rej);
+        });
+        module.on("messageReceived", message => {
+            if (!anyClientsOnline()) {
+                return;
+            }
+            for (const ws of wss.clients) {
+                ws.send({
+                    type: "messageReceived",
+                    data: {
+                        chatId: message.chatId,
+                        module: module.getId(),
+                        content: message.content
+                    }
+                });
+            }
+        });
+        module.on("messageUpdated", (messageId, chatId, newContent) => {
+            if (!anyClientsOnline()) {
+                return;
+            }
+            for (const ws of wss.clients) {
+                ws.send({
+                    type: "messageUpdated",
+                    data: {
+                        chatId: chatId,
+                        module: module.getId(),
+                        messageId,
+                        newContent
+                    }
+                });
+            }
         });
     } catch (e) {
         logger.error(e);

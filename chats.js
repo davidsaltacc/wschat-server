@@ -14,8 +14,9 @@ export class Person {
 
 export class Message {
 
-    constructor(messageId, authorId, authorDisplayName, content, date) {
+    constructor(messageId, chatId, authorId, authorDisplayName, content, date) {
         this.messageId = messageId;
+        this.chatId = chatId;
         this.authorId = authorId;
         this.authorDisplayName = authorDisplayName;
         this.content = content;
@@ -43,7 +44,7 @@ export class DisconnectReason {
 export class ChatModule {
 
     // common events:
-    // opened(), closed(DisconnectReason), error(Exception), messageReceived(Message), messageUpdated(any(messageId), string(newContent))
+    // opened(), closed(DisconnectReason), error(Exception), messageReceived(Message), messageUpdated(string(messageId), string(chatId) string(newContent))
 
     constructor() {
         if (this.constructor == ChatModule) {

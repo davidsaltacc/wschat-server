@@ -32,9 +32,12 @@ export function initAuth() {
 export function authenticate(request, next) {
     
     try {
-        if (request.headers.authorization) {
+
+        const auth = new URL(request).searchParams.get("authentication");
+
+        if (auth) {
             
-            const authSha256 = request.headers.authorization;
+            const authSha256 = auth;
     
             for (let token in tokens) {
                 let toHash = authSha256.toLowerCase() + token.salt.toString("hex").toLowerCase();
