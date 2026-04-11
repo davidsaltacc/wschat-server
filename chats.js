@@ -7,7 +7,7 @@ export class Person {
         this.displayName = displayName;
         this.uniqueName = uniqueName;
         this.biography = biography;
-        this.creationDate = creationDate;
+        this.creationDate = creationDate; // Date
     }
 
 }
@@ -17,9 +17,9 @@ export class Message {
     constructor(messageId, authorId, authorDisplayName, content, date) {
         this.messageId = messageId;
         this.authorId = authorId;
-        this.authorName = authorDisplayName;
+        this.authorDisplayName = authorDisplayName;
         this.content = content;
-        this.date = date;
+        this.date = date; // Date
     }
 
 }
@@ -85,7 +85,7 @@ export class ChatModule {
         throw new Error("fetchAllChats is not implemented");
     }
 
-    async fetchMessagesInChat(chatId) { // return Message[]
+    async fetchMessagesInChat(chatId) { // return Message[] (fetch reasonable amount)
         throw new Error("fetchMessagesInChat is not implemented");
     }
 

@@ -23,8 +23,6 @@ C2S type=messageSent data={
     "content": "..."
 }
 
-TODO 1. these, then messageSent
-
 C2S type=requestChats data={}
 
 -> RES S2C type=chatList data={
@@ -33,10 +31,19 @@ C2S type=requestChats data={}
             "chatId": "...",
             "chatName": "...",
             "module": "...",
-            "messages": [
-                Message...
-            ]
+            "lastMessage": Message
         },
         ...
+    ]
+}
+
+C2S type=requestMessages data={
+    "chatId": "...",
+    "module": "..."
+}
+
+-> RES S2C type=messageList data={
+    messages: [
+        Message...
     ]
 }

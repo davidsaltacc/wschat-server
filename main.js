@@ -43,6 +43,86 @@ wss.on("connection", function connection(ws, request) {
                 ws.openChat = data.chatId;
                 break;
             }
+            case "messageSent": {
+                
+                for (const module of modules) {
+                    if (module.getId() == data.module) {
+                        module.sendMessage(data.chatId, data.content);
+                        break;
+                    }
+                }
+
+                break;
+            }
+            case "requestChats": {
+
+                const fetchTasks = [];
+
+                for (const module of modules) {
+                    fetchTasks.push({
+                        module: module.getId(),
+                        chats: module.fetchAllChats()
+                    });
+                }
+
+                Promise.all(fetchTasks).then(fetchedChatsList => {
+
+                    const chats = [];
+
+                    for (const list of fetchedChatsList) {
+                        for (const chat of list.chats) {
+                            chats.push({
+                                chatId: chat.chatId,
+                                chatName: chat.chatName,
+                                module: list.module,
+                                lastMessage: chat.lastMessage
+                            });
+                        }
+                    }
+                    
+                    ws.send(JSON.stringify({
+                        type: "chatList",
+                        data: {
+                            chats
+                        }
+                    }));
+
+                });
+
+                break;
+            }
+            case "requestMessages": {
+
+                for (const module of modules) {
+                    if (module.getId() == data.module) {
+                        module.fetchMessagesInChat(data.chatId).then(fetchedMessages => {
+
+                            const messages = [];
+
+                            for (const message of fetchedMessages) {
+                                messages.push({
+                                    messageId: message.messageId,
+                                    authorId: message.authorId,
+                                    authorDisplayName: message.authorDisplayName,
+                                    content: message.content,
+                                    date: message.date.getTime()
+                                });
+                            }
+
+                            ws.send(JSON.stringify({
+                                type: "messageList",
+                                data: {
+                                    messages
+                                }
+                            }));
+
+                        });
+                        break;
+                    }
+                }
+
+                break;
+            }
             default: {
                 break;
             }
