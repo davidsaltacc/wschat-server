@@ -1,6 +1,7 @@
 "use strict";
 
 import { Chat, ChatModule, DisconnectReason, Message, Person } from "../chats.js";
+import { logger } from "../logger.js";
 import { Client, GroupDMChannel } from "discord.js-selfbot-youtsuho-v13";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import readline from "readline";
@@ -80,8 +81,14 @@ export class DiscordChatModule extends ChatModule {
         const dms = this.client.channels.cache.filter(c => c.type === "DM" || c.type === "GROUP_DM");
 
         for (const dm of dms) {
-            let isGroup = dm instanceof GroupDMChannel;
-            let lastMessage = new Message(dm[1].lastMessage.id, dm[1].id, dm[1].lastMessage.author.id, dm[1].lastMessage.author.displayName, dm[1].lastMessage.content, dm[1].lastMessage.createdAt);
+            let isGroup = dm[1] instanceof GroupDMChannel;
+            let lastMessageDC;
+            try {
+                lastMessageDC = dm[1].messages.cache.get(dm[1].lastMessageId) ?? await dm[1].messages.fetch(dm[1].lastMessageId);
+            } catch (e) {
+                logger.error(e);
+            }
+            let lastMessage = new Message(lastMessageDC?.id, dm[1].id, lastMessageDC?.author?.id, lastMessageDC?.author?.displayName, lastMessageDC?.content, lastMessageDC?.createdAt);
             chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : dm[1].recipient.displayName, lastMessage));
         }
 

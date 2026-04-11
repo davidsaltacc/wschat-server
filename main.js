@@ -65,10 +65,12 @@ wss.on("connection", function connection(ws, request) {
                 const fetchTasks = [];
 
                 for (const module of modules) {
-                    fetchTasks.push({
-                        module: module.getId(),
-                        chats: module.fetchAllChats()
-                    });
+                    fetchTasks.push((async () => {
+                        return {
+                            module: module.getId(),
+                            chats: await module.fetchAllChats()
+                        };
+                    })());
                 }
 
                 Promise.all(fetchTasks).then(fetchedChatsList => {
@@ -81,7 +83,13 @@ wss.on("connection", function connection(ws, request) {
                                 chatId: chat.chatId,
                                 chatName: chat.chatName,
                                 module: list.module,
-                                lastMessage: chat.lastMessage
+                                lastMessage: {
+                                    messageId: chat.lastMessage.messageId,
+                                    authorId: chat.lastMessage.authorId,
+                                    authorDisplayName: chat.lastMessage.authorDisplayName,
+                                    content: chat.lastMessage.content,
+                                    date: chat.lastMessage.date?.getTime()
+                                }
                             });
                         }
                     }
