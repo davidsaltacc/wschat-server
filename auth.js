@@ -1,6 +1,7 @@
 "use strict";
 
 import { logger } from "./logger.js";
+import { readFileSync } from "fs";
 import { createHash, timingSafeEqual } from "crypto";
 
 const tokens = [];
@@ -33,14 +34,14 @@ export function authenticate(request, next) {
     
     try {
 
-        const auth = new URL(request).searchParams.get("authentication");
+        const auth = new URL(request.url, "wss://127.0.0.1" /* anything, just so it parses */).searchParams.get("authentication");
 
         if (auth) {
             
             const authSha256 = auth;
     
-            for (let token in tokens) {
-                let toHash = authSha256.toLowerCase() + token.salt.toString("hex").toLowerCase();
+            for (let token of tokens) {
+                let toHash = authSha256.toLowerCase() + Buffer.from(token.salt).toString("hex").toLowerCase();
                 let hashed = createHash("sha256").update(toHash).digest();
                 if (timingSafeEqual(hashed, token.hash)) {
                     next(null, true);

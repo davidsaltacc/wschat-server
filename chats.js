@@ -44,7 +44,7 @@ export class DisconnectReason {
 export class ChatModule {
 
     // common events:
-    // opened(), closed(DisconnectReason), error(Exception), messageReceived(Message), messageUpdated(string(messageId), string(chatId) string(newContent))
+    // opened(), closed(DisconnectReason), error(Exception), messageReceived(Message, markAsReadAction), messageUpdated(string(messageId), string(chatId) string(newContent))
 
     constructor() {
         if (this.constructor == ChatModule) {

@@ -25,6 +25,8 @@ const wss = new WebSocketServer({ noServer: true });
 
 wss.on("connection", function connection(ws, request) {
 
+    logger.info("new connection from " + ws._socket.remoteAddress);
+
     ws.isAlive = true;
     ws.on("pong", function pong() {
         ws.isAlive = true;
@@ -182,14 +184,15 @@ wss.on("close", function close() {
 });
 
 server.on("upgrade", function upgrade(request, socket, head) {
-    
-    httpLogger(req);
 
     socket.on("error", logger.error);
   
     authenticate(request, function next(err, success) {
 
         if (err || !success) {
+            if (err) {
+                logger.error(err);
+            }
             socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
             socket.destroy();
             return;
@@ -204,11 +207,11 @@ server.on("upgrade", function upgrade(request, socket, head) {
     });
 });
 
-export function anyClientsOnline() {
+function anyClientsOnline() {
     return wss.clients.size > 0;
 }
 
-export function anyClientOpenedChat(chatId) {
+function anyClientOpenedChat(chatId) {
     if (!anyClientsOnline()) {
         return false;
     }
@@ -223,44 +226,43 @@ export function anyClientOpenedChat(chatId) {
 logger.info("Loading Modules");
 
 for (const module of modules) {
-    try {
-        await new Promise((res, rej) => {
-            module.openConnection(res, rej);
-        });
-        module.on("messageReceived", message => {
-            if (!anyClientsOnline()) {
-                return;
-            }
-            for (const ws of wss.clients) {
-                ws.send({
-                    type: "messageReceived",
-                    data: {
-                        chatId: message.chatId,
-                        module: module.getId(),
-                        content: message.content
-                    }
-                });
-            }
-        });
-        module.on("messageUpdated", (messageId, chatId, newContent) => {
-            if (!anyClientsOnline()) {
-                return;
-            }
-            for (const ws of wss.clients) {
-                ws.send({
-                    type: "messageUpdated",
-                    data: {
-                        chatId: chatId,
-                        module: module.getId(),
-                        messageId,
-                        newContent
-                    }
-                });
-            }
-        });
-    } catch (e) {
-        logger.error(e);
-    }
+    await new Promise((res, rej) => {
+        module.openConnection(res, rej);
+    });
+    module.on("messageReceived", (message, markRead) => {
+        if (!anyClientsOnline()) {
+            return;
+        }
+        if (anyClientOpenedChat(message.chatId)) {
+            markRead();
+        }
+        for (const ws of wss.clients) {
+            ws.send(JSON.stringify({
+                type: "messageReceived",
+                data: {
+                    chatId: message.chatId,
+                    module: module.getId(),
+                    content: message.content
+                }
+            }));
+        }
+    });
+    module.on("messageUpdated", (messageId, chatId, newContent) => {
+        if (!anyClientsOnline()) {
+            return;
+        }
+        for (const ws of wss.clients) {
+            ws.send(JSON.stringify({
+                type: "messageUpdated",
+                data: {
+                    chatId: chatId,
+                    module: module.getId(),
+                    messageId,
+                    newContent
+                }
+            }));
+        }
+    });
 }
 
 server.listen(PORT);

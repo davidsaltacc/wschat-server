@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSChat Example</title>
+    <script src="./index.js" defer></script>
+</head>
+<!-- so i was too lazy to make a seperate css file and ended up with this mess -->
+<body style="background-color: #131313; font-family: 'Courier New', Courier, monospace;">
+    <div id="login-overlay" style="z-index: 99; border: 0; margin: 0; padding: 0; position: fixed; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+        <div style="padding: 40px; border: 2px solid #ffffff4f; border-radius: 20px; display: flex; flex-direction: column;">
+            <p style="color: #ffffff; text-align: center; margin-top: 0;">WSChat Server URL</p>
+            <input id="server-url-input" style="color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px;" title="WSChat Server URL" type="url" />
+            <p style="color: #ffffff; text-align: center;">Password</p>
+            <input id="password-input" style="color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px;" title="Password" type="password">
+            <p id="login-status-text" style="color: #db4949; text-align: center;"></p>
+            <button id="login-button" style="color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px; padding: 5px; margin-top: 50px; cursor: pointer;">Login</button>
+            <div style="display: flex; flex-direction: row; justify-content: center;">
+                <input id="remember-login" title="Remember" type="checkbox" style="accent-color: #333333; width: 20px; margin-right: 10px; filter: invert();" />
+                <p style="color: #ffffff; text-align: center;">Remember login info</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

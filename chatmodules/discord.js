@@ -4,7 +4,6 @@ import { Chat, ChatModule, DisconnectReason, Message, Person } from "../chats.js
 import { Client, GroupDMChannel } from "discord.js-selfbot-youtsuho-v13";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import readline from "readline";
-import { anyClientOpenedChat } from "../main.js";
 
 export class DiscordChatModule extends ChatModule {
 
@@ -39,7 +38,7 @@ export class DiscordChatModule extends ChatModule {
             onError("Authentication not set up");
             return;
         } else {
-            token = readFileSync("auths/discord_token.txt");
+            token = readFileSync("auths/discord_token.txt", { encoding: "utf-8" });
         }
 
         this.client = new Client();
@@ -49,10 +48,9 @@ export class DiscordChatModule extends ChatModule {
         });
 
         this.client.on("messageCreate", async message => {
-            this._fireEvent("messageReceived", new Message(message.id, message.channel.id, message.author.id, message.author.displayName, message.content, message.createdAt));
-            if (anyClientOpenedChat(message.channel.id)) {
+            this._fireEvent("messageReceived", new Message(message.id, message.channel.id, message.author.id, message.author.displayName, message.content, message.createdAt), () => {
                 message.markRead();
-            }
+            });
         });
 
         this.client.on("messageUpdate", async (_, newMessage) => {

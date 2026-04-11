@@ -4,15 +4,7 @@
 # salt = 8 random bytes
 # tokens below constructed like: ((password -> (sha256 (computed on client)) -> hex (lower)) + salt (hex, lower) -> sha256 (computed server) -> base64).(salt -> base64)
 # 
-# step-by-step:
-# 1. take password, compute sha256 hash, as a lowercase hex number
-# 2. take 8 random bytes as salt, write down somewhere (make sure they are random)
-# 3. append salt bytes as a lowercase hex number to the password computed in step 1
-# 4. compute sha256 hash again, this time as base64
-# 5. encode salt bytes as base64 aswell
-# 6. in here, write down the both base64 strings, seperated by a dot.
-#
-# will this ever be automated? probably. do i want to do it right now? no thank you.
+# just run `npm run make_token`
 
 QZIBLT6L9O6dkWip1wabOlBK66fxqf+GDkzkF5NUxg8=.FneHUnd7qRU=
 # password "example"
