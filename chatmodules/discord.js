@@ -52,7 +52,7 @@ export class DiscordChatModule extends ChatModule {
             if (message.channel.type !== "DM" && message.channel.type !== "GROUP_DM") {
                 return;
             }
-            this._fireEvent("messageReceived", new Message(message.id, message.channel.id, message.author.id, message.author.displayName, message.content, message.createdAt), () => {
+            this._fireEvent("messageReceived", new Message(message.id, message.channel.id, message.author.id, message.author.friendNickname ?? message.author.displayName, message.content, message.createdAt), () => {
                 if (message.author.id === this.client.user.id) {
                     return;
                 }
@@ -105,8 +105,8 @@ export class DiscordChatModule extends ChatModule {
             } catch (e) {
                 logger.error(e);
             }
-            let lastMessage = new Message(lastMessageDC?.id, dm[1].id, lastMessageDC?.author?.id, lastMessageDC?.author?.displayName, lastMessageDC?.content, lastMessageDC?.createdAt);
-            chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : dm[1].recipient.displayName, lastMessage));
+            let lastMessage = new Message(lastMessageDC?.id, dm[1].id, lastMessageDC?.author?.id, lastMessageDC?.author?.friendNickname ?? lastMessageDC?.author?.displayName, lastMessageDC?.content, lastMessageDC?.createdAt);
+            chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : (dm[1].recipient.friendNickname ?? dm[1].recipient.displayName), lastMessage));
         }
 
         return chats;
@@ -122,7 +122,7 @@ export class DiscordChatModule extends ChatModule {
 
         for (let message of fetchedMessages) {
             message = message[1];
-            messages.push(new Message(message.id, channelId, message.author.id, message.author.displayName, message.content, message.createdAt));
+            messages.push(new Message(message.id, channelId, message.author.id, message.author.friendNickname ?? message.author.displayName, message.content, message.createdAt));
         }
 
         return messages;
@@ -132,8 +132,7 @@ export class DiscordChatModule extends ChatModule {
     async fetchUserInfo(userId) {
 
         let fetchedUser = await this.client.users.fetch(userId);
-        return new Person(userId, fetchedUser.displayName, fetchedUser.username, "", fetchedUser.createdAt);
-        // TODO if the selfbot api can fetch user bio's
+        return new Person(userId, fetchedUser.friendNickname ?? fetchedUser.displayName, fetchedUser.username, fetchedUser.bio ?? "<no bio found>", fetchedUser.createdAt);
 
     }
 

@@ -53,6 +53,16 @@
         </div>
     </div>
     
+    <div id="person-overlay" class="hides-personoverlay" style="display: none; z-index: 3; cursor: pointer; background-color: #131313d0; border: 0; margin: 0; padding: 0; position: fixed; left: 0; top: 0; width: 100%; height: 100%; justify-content: center; align-items: center;">
+        <div style="cursor: auto; padding: 40px; margin: 40px; border: 2px solid #ffffff4f; border-radius: 20px; display: flex; flex-direction: column;">
+            <p id="personoverlay-name" style="color: #ffffff; text-align: center; margin-top: 0; margin-bottom: 4px; font-size: 1.4rem;"></p>
+            <p style="color: #bdbdbd; text-align: center; margin-top: 0; font-size: 0.85rem;"><span id="personoverlay-uname"></span> (<span id="personoverlay-id"></span>)</p>
+            <p id="personoverlay-bio" style="color: #ffffff; text-align: center; margin-top: 0;"></p>
+            <p style="color: #bdbdbd; text-align: center; margin-top: 0; margin-bottom: 0; font-size: 0.95rem;">Account exists since: <span id="personoverlay-date"></span></p>
+        </div>
+        <button class="hides-personoverlay" style="position: absolute; top: 20px; right: 20px; color: #ffffff; background-color: #1a1a1a; border: 1px solid #838383; border-radius: 8px; font-family: 'Courier New', Courier, monospace; padding: 10px; cursor: pointer;">Close</button>
+    </div>
+    
     <div style="z-index: 2; border: 0; margin: 0; padding: 0; position: fixed; left: 0; top: 0; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: auto;">
         <div style="display: flex; flex-direction: row; align-items: center;">
             <h2 id="openchat-name" style="color: #ffffff; margin: 20px; margin-bottom: 15px;"></h2>
@@ -65,7 +75,7 @@
             <div id="basemessage" style="display: none;">
                 <div style="display: flex; flex-direction: column; align-items: start; margin-left: 10px; margin-right: 10px;">
                     <div style="margin-top: 8px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%;">
-                        <p id="basemessage-author" style="color: #838383; margin: 0; font-size: 0.96rem;"></p>
+                        <p id="basemessage-author" style="color: #838383; margin: 0; font-size: 0.96rem; cursor: pointer;"></p>
                         <p id="basemessage-date-nice" style="color: #838383; margin: 0; font-size: 0.96rem;"></p>
                         <div id="basemessage-date" style="display: none;"></div>
                     </div>

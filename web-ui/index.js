@@ -38,6 +38,7 @@ const loginButton = q("#login-button");
 const logoutButton = q("#logout-button");
 const loginOverlay = q("#login-overlay");
 const chatsOverlay = q("#chats-overlay");
+const personOverlay = q("#person-overlay");
 const serverUrlInput = q("#server-url-input");
 const passwordInput = q("#password-input");
 const loginStatus = q("#login-status-text");
@@ -55,6 +56,7 @@ let chatUpdateInterval = null;
 let messagesUpdateInterval = null;
 let openedChatId = null;
 let onChatHistoryFetched = () => {};
+let onUserInfoFetched = () => {};
 let ws;
 
 function clearChats() {
@@ -94,6 +96,28 @@ function constructChatMessages(chat) {
         cloned.id = "message-" + message.messageId;
 
         cloned.querySelector("#basemessage-author").innerText = message.authorDisplayName;
+        cloned.querySelector("#basemessage-author").onclick = () => {
+
+            onUserInfoFetched = user => {
+
+                q("#person-overlay").style.display = "flex";
+                q("#personoverlay-name").innerText = user.displayName;
+                q("#personoverlay-uname").innerText = user.uniqueName;
+                q("#personoverlay-id").innerText = user.id;
+                q("#personoverlay-bio").innerText = user.biography;
+                q("#personoverlay-date").innerText = new Date(user.creationDate).toLocaleString();
+
+            };
+
+            ws.send(JSON.stringify({
+                type: "requestUserInfo",
+                data: {
+                    id: message.authorId,
+                    module: chat.module
+                }
+            }));
+
+        };
         cloned.querySelector("#basemessage-author").id = "message-" + message.messageId + "-author";
         
         cloned.querySelector("#basemessage-content").innerText = message.content;
@@ -288,6 +312,7 @@ function login(wsUrl) {
         loginButton.style.color = "#ffffff";
         loginOverlay.style.display = "flex";
         chatsOverlay.style.display = "flex";
+        personOverlay.style.display = "none";
         loadingChats.style.display = "";
         loggedIn = false;
         _ws.send(JSON.stringify({
@@ -374,6 +399,10 @@ function login(wsUrl) {
                 }
                 break;
             }
+            case "userInfo": {
+                onUserInfoFetched(data.info);
+                break;
+            }
             default: {
                 break;
             }
@@ -447,6 +476,14 @@ closeChatsButton.onclick = () => {
     }));
 
     chatsOverlay.style.display = "flex";
+
+}
+
+personOverlay.onclick = ev => {
+
+    if (ev.target.className.indexOf("hides-personoverlay") >= 0) {
+        personOverlay.style.display = "none";
+    }
 
 }
 
