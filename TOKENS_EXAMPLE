@@ -1,13 +1,7 @@
-# password auth: 
-#
-# password = user input
-# salt = 8 random bytes
-# tokens below constructed like: ((password -> (sha256 (computed on client)) -> hex (lower)) + salt (hex, lower) -> sha256 (computed server) -> base64).(salt -> base64)
-# 
-# just run `npm run make_token`
-
-QZIBLT6L9O6dkWip1wabOlBK66fxqf+GDkzkF5NUxg8=.FneHUnd7qRU=
-# password "example"
 
 # CREATE YOUR OWN TOKENS FILE!
 # (comments with #, must be first character)
+# just run `npm run make_token` and add it to a new file named "TOKENS"
+
+rWMnPNKwarUaniZ0hDZzofXR9IeFySJBprIlrY3O4xo=.ErrzAlAgsH8=
+# password "example"
