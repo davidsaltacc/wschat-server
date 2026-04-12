@@ -1,0 +1,345 @@
+
+body {
+    background-color: #131313; 
+    color: #ffffff;
+    font-family: "Courier New", Courier, monospace;
+}
+
+*:focus {
+    outline: none;
+}
+
+
+input[type=checkbox] {
+    accent-color: #333333; 
+    width: 20px; 
+    filter: invert();
+}
+
+input[type=text], input[type=url], input[type=password] {
+    padding: 5px;
+}
+
+button, input[type=text], input[type=url], input[type=password] {
+    color: #ffffff;
+    font-family: "Courier New", Courier, monospace;
+    background-color: #222222; 
+    border: 1px solid #ffffff4f;
+    border-radius: 4px;
+}
+
+button {
+    cursor: pointer;
+}
+
+.max-size {
+    border: 0; 
+    margin: 0; 
+    padding: 0; 
+    position: fixed; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+}
+
+.centering {
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+}
+
+.hidden {
+    display: none;
+}
+
+.no-padding {
+    padding: 0;
+}
+
+.no-margin {
+    margin: 0;
+}
+
+.no-margin-top {
+    margin-top: 0;
+}
+
+.no-margin-bottom {
+    margin-bottom: 0;
+}
+
+.flex-row {
+    display: flex; 
+    flex-direction: row;
+}
+
+.flex-col {
+    display: flex; 
+    flex-direction: column;
+}
+
+.overlay-box {
+    padding: 40px; 
+    border: 2px solid #ffffff4f; 
+    border-radius: 20px; 
+    display: flex; 
+    flex-direction: column;
+}
+
+#login-overlay {
+    z-index: 99; 
+    background-color: #131313; 
+}
+
+#login-overlay p {
+    text-align: center;
+}
+
+#login-overlay-box {
+    min-width: 300px;
+}
+
+#login-status-text {
+    color: #db4949;
+}
+
+#login-button {
+    padding: 5px; 
+    margin-top: 50px;
+}
+
+#remember-login-container {
+    justify-content: center;
+}
+
+#remember-login {
+    margin-right: 10px; 
+}
+
+#chats-overlay {
+    z-index: 5; 
+    background-color: #131313; 
+    overflow: auto;
+}
+
+.row-center-space-between {
+    align-items: center; 
+    justify-content: space-between;
+}
+
+#chats-title {
+    margin: 20px; 
+    margin-bottom: 15px;
+}
+
+#logout-button {
+    font-size: 1.1rem;
+    padding: 7px; 
+    margin-right: 10px;
+}
+
+#loading-chats-text {
+    margin: 15px;
+}
+
+.list-chat {
+    padding-top: 10px; 
+    display: none; 
+    cursor: pointer;
+}
+
+.list-chat-container {  
+    margin-top: 10px;
+    justify-content: space-between; 
+    align-items: center;
+}
+
+.list-chat-left {
+    flex-shrink: 0; 
+    margin-right: 15px; 
+    margin-left: 10px;
+}
+
+.list-chat-right {
+    align-items: center;
+    min-width: 0;
+}
+
+.list-chat-right-right {
+    align-items: end; 
+    margin-left: 15px; 
+    margin-right: 10px; 
+    flex-shrink: 0;
+}
+
+.list-chat-seperator {
+    margin-top: 10px;
+}
+
+.list-chat-platform {
+    margin: 0; 
+    font-size: 0.8rem;
+}
+
+.list-chat-name {
+    margin: 0; 
+    font-size: 1.031rem;
+}
+
+.list-chat-last-content {
+    margin: 0; 
+    color: #dfdfdf; 
+    overflow: hidden; 
+    white-space: nowrap; 
+    text-overflow: ellipsis;
+}
+
+.list-chat-last-author {
+    margin: 0; 
+    color: #838383;
+}
+
+.list-chat-last-date-nice {
+    margin: 0; 
+    color: #838383; 
+    font-size: 0.8rem;
+}
+
+#person-overlay {
+    display: none; 
+    z-index: 3; 
+    cursor: pointer; 
+    background-color: #131313d0;
+}
+
+#person-overlay-container {
+    cursor: auto; 
+    margin: 40px;
+}
+
+#person-overlay-container p {
+    text-align: center;
+}
+
+#personoverlay-name {
+    margin-bottom: 4px; 
+    font-size: 1.4rem; 
+}
+
+#personoverlay-ids {
+    color: #bdbdbd; 
+    font-size: 0.85rem;
+}
+
+#personoverlay-date-text {
+    color: #bdbdbd; 
+    font-size: 0.95rem;
+}
+
+#hide-person-overlay {
+    position: absolute; 
+    top: 20px; 
+    right: 20px; 
+    background-color: #1a1a1a; 
+    border: 1px solid #838383; 
+    border-radius: 8px; 
+    padding: 10px; 
+}
+
+#chat-messages-container {
+    z-index: 2; 
+    overflow: auto;
+}
+
+#chat-messages-header {
+    align-items: center;
+}
+
+#openchat-name {
+    margin: 20px; 
+    margin-bottom: 15px;
+}
+
+#openchat-platform {
+    margin: 20px; 
+    margin-bottom: 15px; 
+    margin-left: 0px; 
+    font-size: 0.9rem;
+}
+
+#chat-messages-header-seperator {
+    flex-grow: 1;
+}
+
+#close-chat-button {
+    font-size: 1.1rem;
+    padding: 7px;
+    margin-right: 10px;
+}
+
+#messages-container {
+    overflow: auto; 
+    display: flex; 
+    flex-direction: column-reverse; 
+    flex-grow: 1;
+}
+
+.chat-message-container {
+    align-items: start; 
+    margin-left: 10px; 
+    margin-right: 10px;
+}
+
+.chat-message-firstrow {
+    margin-top: 8px; 
+    width: 100%;
+}
+
+.chat-message-author {
+    color: #838383; 
+    margin: 0; 
+    font-size: 0.96rem; 
+    cursor: pointer;
+}
+
+.chat-message-date {
+    color: #838383; 
+    margin: 0; 
+    font-size: 0.96rem;
+}
+
+.chat-message-content {
+    margin: 0; 
+    max-width: 100%; 
+    word-wrap: break-word;
+}
+
+#chat-send-seperator {
+    margin-top: 8px;
+}
+
+#sendmessage-content {
+    resize: none; 
+    padding: 8px; 
+    margin: 10px; 
+    flex-grow: 1; 
+    color: #ffffff;
+    background-color: #2f2f2f; 
+    border: 1px solid #838383; 
+    border-radius: 8px; 
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; 
+    font-size: 0.9rem;
+}
+
+#sendmessage-button {
+    padding: 15px; 
+    background-color: #2f2f2f; 
+    border: 1px solid #838383; 
+    border-radius: 8px; 
+    font-size: large;
+}
+
+.chat, .message {
+    display: unset !important;
+}

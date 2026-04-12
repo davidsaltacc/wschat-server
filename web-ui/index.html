@@ -5,89 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WSChat</title>
     <script src="index.js" defer></script>
+    <link rel="stylesheet" href="styles.css" />
 </head>
-<!-- so i was too lazy to make a seperate css file and ended up with this mess. 
- TODO refactor??? -->
-<body style="background-color: #131313; font-family: 'Courier New', Courier, monospace;">
+<body>
     
-    <div id="login-overlay" style="z-index: 99; background-color: #131313; border: 0; margin: 0; padding: 0; position: fixed; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-        <div style="padding: 40px; border: 2px solid #ffffff4f; border-radius: 20px; display: flex; flex-direction: column;">
-            <p style="color: #ffffff; text-align: center; margin-top: 0;">WSChat Server URL</p>
-            <input id="server-url-input" style="font-family: 'Courier New', Courier, monospace; color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px;" title="WSChat Server URL" type="url" />
-            <p style="color: #ffffff; text-align: center;">Password</p>
-            <input id="password-input" style="font-family: 'Courier New', Courier, monospace; color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px;" title="Password" type="password">
-            <p id="login-status-text" style="color: #db4949; text-align: center;"></p>
-            <button id="login-button" style="font-family: 'Courier New', Courier, monospace; color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px; padding: 5px; margin-top: 50px; cursor: pointer;">Login</button>
-            <div style="display: flex; flex-direction: row; justify-content: center;">
-                <input id="remember-login" title="Remember" type="checkbox" style="accent-color: #333333; width: 20px; margin-right: 10px; filter: invert();" />
-                <p style="color: #ffffff; text-align: center;">Remember login info</p>
+    <div id="login-overlay" class="max-size centering">
+        <div class="overlay-box" id="login-overlay-box">
+            <p class="no-margin-top">WSChat Server URL</p>
+            <input id="server-url-input" title="WSChat Server URL" type="url" />
+            <p>Password</p>
+            <input id="password-input" title="Password" type="password">
+            <p id="login-status-text"></p>
+            <button id="login-button">Login</button>
+            <div class="flex-row" id="remember-login-container">
+                <input id="remember-login" title="Remember" type="checkbox" />
+                <p>Remember login info</p>
             </div>
         </div>
     </div>
-
-    <div id="chats-overlay" style="z-index: 5; background-color: #131313; border: 0; margin: 0; padding: 0; position: fixed; left: 0; top: 0; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: auto;">
-        <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
-            <h2 style="color: #ffffff; margin: 20px; margin-bottom: 15px;">Chats</h2>
-            <button id="logout-button" style="font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px; padding: 7px; cursor: pointer; margin-right: 10px;">Logout</button>
+    
+    <div id="chats-overlay" class="max-size flex-col">
+        <div class="flex-row row-center-space-between">
+            <h2 id="chats-title">Chats</h2>
+            <button id="logout-button">Logout</button>
         </div>
-        <hr style="margin: 0; padding: 0;" />
-        <h3 style="color: #ffffff; margin: 15px;" id="loading-chats-text">Loading chats...</h3>
-        <div id="chats-container" style="margin: 0; padding: 0;">
-            <div id="basechat" style="padding-top: 10px; display: none; cursor: pointer;">
-                <div style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                    <div style="flex-shrink: 0; margin-right: 15px; margin-left: 10px;">
-                        <p id="basechat-platform" style="margin: 0; color: #ffffff; font-size: 0.8rem;"></p>
-                        <p id="basechat-name" style="margin: 0; color: #ffffff; font-size: 1.031rem;"></p>
+        <hr class="no-margin no-padding" />
+        <h3 id="loading-chats-text">Loading chats...</h3>
+        <div id="chats-container" class="no-margin no-padding">
+            <div id="basechat" class="list-chat">
+                <div class="flex-row list-chat-container">
+                    <div class="list-chat-left">
+                        <p id="basechat-platform" class="list-chat-platform"></p>
+                        <p id="basechat-name" class="list-chat-name"></p>
                     </div>
-                    <div style="display: flex; flex-direction: row; align-items: center; min-width: 0;">
-                        <p id="basechat-last-content" style="margin: 0; color: #dfdfdf; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; "></p>
-                        <div style="display: flex; flex-direction: column; align-items: end; margin-left: 15px; margin-right: 10px; flex-shrink: 0;">
-                            <p id="basechat-last-author" style="margin: 0; color: #838383;"></p>
-                            <p id="basechat-last-date-nice" style="margin: 0; color: #838383; font-size: 0.8rem;"></p>
-                            <div id="basechat-last-date" style="display: none;"></div>
+                    <div class="flex-row list-chat-right">
+                        <p id="basechat-last-content" class="list-chat-last-content"></p>
+                        <div class="flex-col list-chat-right-right">
+                            <p id="basechat-last-author" class="list-chat-last-author"></p>
+                            <p id="basechat-last-date-nice" class="list-chat-last-date-nice"></p>
+                            <div id="basechat-last-date" class="hidden"></div>
                         </div>
                     </div>
                 </div>
-                <hr style="margin: 0; margin-top: 10px;" />
+                <hr class="no-margin list-chat-seperator" />
             </div>
         </div>
     </div>
     
-    <div id="person-overlay" class="hides-personoverlay" style="display: none; z-index: 3; cursor: pointer; background-color: #131313d0; border: 0; margin: 0; padding: 0; position: fixed; left: 0; top: 0; width: 100%; height: 100%; justify-content: center; align-items: center;">
-        <div style="cursor: auto; padding: 40px; margin: 40px; border: 2px solid #ffffff4f; border-radius: 20px; display: flex; flex-direction: column;">
-            <p id="personoverlay-name" style="color: #ffffff; text-align: center; margin-top: 0; margin-bottom: 4px; font-size: 1.4rem;"></p>
-            <p style="color: #bdbdbd; text-align: center; margin-top: 0; font-size: 0.85rem;"><span id="personoverlay-uname"></span> (<span id="personoverlay-id"></span>)</p>
-            <p id="personoverlay-bio" style="color: #ffffff; text-align: center; margin-top: 0;"></p>
-            <p style="color: #bdbdbd; text-align: center; margin-top: 0; margin-bottom: 0; font-size: 0.95rem;">Account exists since: <span id="personoverlay-date"></span></p>
+    <div id="person-overlay" class="hides-personoverlay max-size centering">
+        <div class="overlay-box" id="person-overlay-container">
+            <p class="no-margin-top" id="personoverlay-name"></p>
+            <p class="no-margin-top" id="personoverlay-ids"><span id="personoverlay-uname"></span> (<span id="personoverlay-id"></span>)</p>
+            <p class="no-margin-top" id="personoverlay-bio"></p>
+            <p class="no-margin-top no-margin-bottom" id="personoverlay-date-text">Account exists since: <span id="personoverlay-date"></span></p>
         </div>
-        <button class="hides-personoverlay" style="position: absolute; top: 20px; right: 20px; color: #ffffff; background-color: #1a1a1a; border: 1px solid #838383; border-radius: 8px; font-family: 'Courier New', Courier, monospace; padding: 10px; cursor: pointer;">Close</button>
+        <button class="hides-personoverlay" id="hide-person-overlay">Close</button>
     </div>
     
-    <div style="z-index: 2; border: 0; margin: 0; padding: 0; position: fixed; left: 0; top: 0; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: auto;">
-        <div style="display: flex; flex-direction: row; align-items: center;">
-            <h2 id="openchat-name" style="color: #ffffff; margin: 20px; margin-bottom: 15px;"></h2>
-            <p id="openchat-platform" style="margin: 20px; margin-bottom: 15px; margin-left: 0px; font-size: 0.9rem;"></p>
-            <div style="flex-grow: 1;"></div>
-            <button id="close-chat-button" style="font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; color: #ffffff; background-color: #222222; border: 1px solid #ffffff4f; border-radius: 4px; padding: 7px; cursor: pointer; margin-right: 10px;">Close Chat</button>
+    <div class="max-size flex-col" id="chat-messages-container">
+        <div class="flex-row" id="chat-messages-header">
+            <h2 id="openchat-name"></h2>
+            <p id="openchat-platform"></p>
+            <div id="chat-messages-header-seperator"></div>
+            <button id="close-chat-button">Close Chat</button>
         </div>
-        <hr style="margin: 0; padding: 0;" />
-        <div id="messages-container" style="margin: 0; padding: 0; overflow: auto; display: flex; flex-direction: column-reverse; flex-grow: 1;">
-            <div id="basemessage" style="display: none;">
-                <div style="display: flex; flex-direction: column; align-items: start; margin-left: 10px; margin-right: 10px;">
-                    <div style="margin-top: 8px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%;">
-                        <p id="basemessage-author" style="color: #838383; margin: 0; font-size: 0.96rem; cursor: pointer;"></p>
-                        <p id="basemessage-date-nice" style="color: #838383; margin: 0; font-size: 0.96rem;"></p>
-                        <div id="basemessage-date" style="display: none;"></div>
+        <hr class="no-margin no-padding" />
+        <div id="messages-container" class="no-margin no-padding">
+            <div id="basemessage" class="hidden">
+                <div class="flex-col chat-message-container">
+                    <div class="flex-row row-center-space-between chat-message-firstrow">
+                        <p id="basemessage-author" class="chat-message-author"></p>
+                        <p id="basemessage-date-nice" class="chat-message-date"></p>
+                        <div id="basemessage-date" class="hidden"></div>
                     </div>
-                    <p id="basemessage-content" style="color: #ffffff; margin: 0; max-width: 100%; word-wrap: break-word;"></p>
+                    <p id="basemessage-content" class="chat-message-content"></p>
                 </div>
             </div>
         </div>
         <div>
-            <hr style="margin: 0; padding: 0; margin-top: 8px;" />
-            <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
-                <textarea id="sendmessage-content" placeholder="Send Text" style="resize: none; padding: 8px; margin: 10px; flex-grow: 1; color: #ffffff; background-color: #2f2f2f; border: 1px solid #838383; border-radius: 8px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem;" spellcheck="false"></textarea>
-                <button id="sendmessage-button" style="padding: 15px; color: #ffffff; background-color: #2f2f2f; border: 1px solid #838383; border-radius: 8px; font-size: large; font-family: 'Courier New', Courier, monospace; cursor: pointer;">Send</button>
+            <hr class="no-margin no-padding" id="chat-send-seperator" />
+            <div class="flex-row row-center-space-between">
+                <textarea id="sendmessage-content" placeholder="Send Texts" spellcheck="false"></textarea>
+                <button id="sendmessage-button">Send</button>
             </div>
         </div>
     </div>
