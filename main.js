@@ -1,6 +1,6 @@
 "use strict";
 
-import { PORT, USE_HTTP, ENABLED_MODULES as modules } from "./config.js";
+import { PORT, USE_INSECURE, ENABLED_MODULES as modules } from "./config.js";
 import { authenticate, initAuth } from "./auth.js";
 import { logger, httpLogger } from "./logger.js";
 import { createServer } from "https";
@@ -14,7 +14,7 @@ logger.info("Creating server");
 
 const serveWebUI = process.argv[2]?.indexOf("--serve-ui") >= 0;
 
-const server = (USE_HTTP ? createInsecureServer : createServer)(USE_HTTP ? {} : {
+const server = (USE_INSECURE ? createInsecureServer : createServer)(USE_INSECURE ? {} : {
     cert: readFileSync("certs/cert.pem"),
     key: readFileSync("certs/key.pem")
 }, function handleRequest(req, res) {

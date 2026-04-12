@@ -39,5 +39,5 @@ for (const module of allModules) {
 
 export const ENABLED_MODULES = enabledModules;
 export const PORT = parseInt(config["port"]);
-export const USE_HTTP = config["useHTTP"] === "true";
+export const USE_INSECURE = config["useTLS"] === "false";
 
