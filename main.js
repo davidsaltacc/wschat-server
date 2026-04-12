@@ -14,7 +14,7 @@ logger.info("Creating server");
 
 const serveWebUI = process.argv[2]?.indexOf("--serve-ui") >= 0;
 
-const server = /*(USE_HTTP ? createInsecureServer : createServer)*/createServer(USE_HTTP ? {} : {
+const server = (USE_HTTP ? createInsecureServer : createServer)(USE_HTTP ? {} : {
     cert: readFileSync("certs/cert.pem"),
     key: readFileSync("certs/key.pem")
 }, function handleRequest(req, res) {
@@ -30,7 +30,7 @@ const server = /*(USE_HTTP ? createInsecureServer : createServer)*/createServer(
 
         let filePath = "web-ui/" + (path[0] ?? "index.html");
 
-        readFile(filePath, (error, content) => {
+        readFile(filePath, { encoding: "utf-8" }, (error, content) => {
             if (error) {
                 if (error.code == "ENOENT" || error.code == "EISDIR") {
                     res.writeHead(404);
@@ -43,7 +43,7 @@ const server = /*(USE_HTTP ? createInsecureServer : createServer)*/createServer(
             }
             else {
                 res.writeHead(200);
-                res.end(content, "utf-8");
+                res.end(content.replaceAll("_IS_HOSTED_BY_WSCHAT_SERVER_INSTANCE_PLACEHOLDER_", "1"));
             }
         });
 

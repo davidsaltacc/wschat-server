@@ -34,6 +34,8 @@ qA("textarea").forEach(textarea => {
     });
 });
 
+const isHostedByWSCServer = parseInt("_IS_HOSTED_BY_WSCHAT_SERVER_INSTANCE_PLACEHOLDER_") === 1; // will be replaced with "1" if hosted by a wschat server
+
 const loginButton = q("#login-button");
 const logoutButton = q("#logout-button");
 const loginOverlay = q("#login-overlay");
@@ -92,7 +94,7 @@ function constructChatMessages(chat) {
         baseMessage.parentElement.appendChild(cloned);
     
         cloned.style.display = "";
-        cloned.className = "message";
+        cloned.classList.add("message");
         cloned.id = "message-" + message.messageId;
 
         cloned.querySelector("#basemessage-author").innerText = message.authorDisplayName;
@@ -244,7 +246,7 @@ function constructChatList() {
         baseChat.parentElement.appendChild(cloned);
     
         cloned.style.display = "";
-        cloned.className = "chat";
+        cloned.classList.add("chat");
         cloned.id = "chat-" + chat.chatId;
 
         cloned.onclick = () => openChat(chat.chatId);
@@ -484,6 +486,12 @@ personOverlay.onclick = ev => {
     if (ev.target.className.indexOf("hides-personoverlay") >= 0) {
         personOverlay.style.display = "none";
     }
+
+}
+
+if (isHostedByWSCServer) {
+    
+    serverUrlInput.value = window.location.href.replace("https://", "wss://").replace("http://", "ws://")
 
 }
 
