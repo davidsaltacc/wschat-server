@@ -262,13 +262,13 @@ function constructChatList() {
         cloned.querySelector("#basechat-name").innerText = chat.chatName;
         cloned.querySelector("#basechat-name").id = "chat-" + chat.chatId + "-name";
 
-        cloned.querySelector("#basechat-last-content").innerText = chat.lastMessage.content?.replaceAll("\n", " ");
+        cloned.querySelector("#basechat-last-content").innerText = (chat.lastMessage?.content ?? "").replaceAll("\n", " ");
         cloned.querySelector("#basechat-last-content").id = "chat-" + chat.chatId + "-last-content";
 
-        cloned.querySelector("#basechat-last-author").innerText = chat.lastMessage.authorDisplayName;
+        cloned.querySelector("#basechat-last-author").innerText = chat.lastMessage?.authorDisplayName ?? "";
         cloned.querySelector("#basechat-last-author").id = "chat-" + chat.chatId + "-last-author";
 
-        cloned.querySelector("#basechat-last-date").innerText = chat.lastMessage.date;
+        cloned.querySelector("#basechat-last-date").innerText = chat.lastMessage?.date ?? "none";
         cloned.querySelector("#basechat-last-date").id = "chat-" + chat.chatId + "-last-date";
         
         cloned.querySelector("#basechat-last-date-nice").id = "chat-" + chat.chatId + "-last-date-nice";
@@ -280,8 +280,9 @@ function constructChatList() {
 
         qA(".chat").forEach(chatElement => {
 
-            const date = new Date(parseInt(q("#" + chatElement.id + "-last-date").innerHTML));
-            q("#" + chatElement.id + "-last-date-nice").innerText = timeAgoNice(date);
+            const dateInt = q("#" + chatElement.id + "-last-date").innerHTML;
+            const date = new Date(parseInt(dateInt));
+            q("#" + chatElement.id + "-last-date-nice").innerText = dateInt === "none" ? "never" : timeAgoNice(date);
 
         });
 

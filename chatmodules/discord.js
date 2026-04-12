@@ -1,8 +1,7 @@
 "use strict";
 
 import { Chat, ChatModule, DisconnectReason, Message, Person } from "../chats.js";
-import { logger } from "../logger.js";
-import { Client, GroupDMChannel } from "discord.js-selfbot-youtsuho-v13";
+import { Client, GroupDMChannel, Message as DCMessage } from "discord.js-selfbot-youtsuho-v13";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import readline from "readline";
 
@@ -52,7 +51,7 @@ export class DiscordChatModule extends ChatModule {
             if (message.channel.type !== "DM" && message.channel.type !== "GROUP_DM") {
                 return;
             }
-            this._fireEvent("messageReceived", new Message(message.id, message.channel.id, message.author.id, message.author.friendNickname ?? message.author.displayName, message.content, message.createdAt), () => {
+            this._fireEvent("messageReceived", this.discordMessageToWSCMessage(message), () => {
                 if (message.author.id === this.client.user.id) {
                     return;
                 }
@@ -64,7 +63,7 @@ export class DiscordChatModule extends ChatModule {
             if (newMessage.channel.type !== "DM" && newMessage.channel.type !== "GROUP_DM") {
                 return;
             }
-            this._fireEvent("messageUpdated", newMessage.id, newMessage.channel.id, newMessage.content);
+            this._fireEvent("messageUpdated", newMessage.id, newMessage.channel.id, newMessage.cleanContent);
         });
         
         this.client.on("messageDelete", async message => {
@@ -100,12 +99,11 @@ export class DiscordChatModule extends ChatModule {
             let isGroup = dm[1] instanceof GroupDMChannel;
             let lastMessageDC;
             try {
-                lastMessageDC = dm[1].messages.cache.get(dm[1].lastMessageId) ?? await dm[1].messages.fetch(dm[1].lastMessageId);
-                // TODO appears to be invalid, shows as "undefined" in UI if the last message in chat was deleted at some point (todo just fetch the next normal one)
+                lastMessageDC = dm[1].messages.cache.get(dm[1].lastMessageId) ?? (await dm[1].messages.fetch({ limit: 15 })).filter(m => !m.partial).first();
             } catch (e) {
                 logger.error(e);
             }
-            let lastMessage = new Message(lastMessageDC?.id, dm[1].id, lastMessageDC?.author?.id, lastMessageDC?.author?.friendNickname ?? lastMessageDC?.author?.displayName, lastMessageDC?.content, lastMessageDC?.createdAt);
+            let lastMessage = this.discordMessageToWSCMessage(lastMessageDC);
             chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : (dm[1].recipient.friendNickname ?? dm[1].recipient.displayName), lastMessage));
         }
 
@@ -121,8 +119,7 @@ export class DiscordChatModule extends ChatModule {
         let fetchedMessages = await channel.messages.fetch({ limit: 100 });
 
         for (let message of fetchedMessages) {
-            message = message[1];
-            messages.push(new Message(message.id, channelId, message.author.id, message.author.friendNickname ?? message.author.displayName, message.content, message.createdAt));
+            messages.push(this.discordMessageToWSCMessage(message[1]));
         }
 
         return messages;
@@ -140,6 +137,27 @@ export class DiscordChatModule extends ChatModule {
 
         this.client.channels.fetch(channelId).then(channel => channel.send(content));
 
+    }
+
+    /**
+     * @param {DCMessage} message 
+     */
+    discordMessageToWSCMessage(message) {
+        let content = "";
+        if (message?.attachments?.size > 0) {
+            content += "<" + message.attachments.size + " attachments>\n"
+        }
+        if (message?.stickers?.size > 0) {
+            content += "<sticker>";
+        }
+        if (message?.system) {
+            content += "<system message>";
+        }
+        content += message?.cleanContent ?? "";
+        if (content.length === 0) {
+            content = null;
+        }
+        return new Message(message?.id, message?.channel?.id, message?.author?.id, message?.author?.friendNickname ?? message?.author?.displayName, content, message?.createdAt);
     }
 
     getId() {
