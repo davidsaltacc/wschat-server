@@ -49,13 +49,29 @@ export class DiscordChatModule extends ChatModule {
         });
 
         this.client.on("messageCreate", async message => {
+            if (message.channel.type !== "DM" && message.channel.type !== "GROUP_DM") {
+                return;
+            }
             this._fireEvent("messageReceived", new Message(message.id, message.channel.id, message.author.id, message.author.displayName, message.content, message.createdAt), () => {
+                if (message.author.id === this.client.user.id) {
+                    return;
+                }
                 message.markRead();
             });
         });
 
         this.client.on("messageUpdate", async (_, newMessage) => {
+            if (newMessage.channel.type !== "DM" && newMessage.channel.type !== "GROUP_DM") {
+                return;
+            }
             this._fireEvent("messageUpdated", newMessage.id, newMessage.channel.id, newMessage.content);
+        });
+        
+        this.client.on("messageDelete", async message => {
+            if (message.channel.type !== "DM" && message.channel.type !== "GROUP_DM") {
+                return;
+            }
+            this._fireEvent("messageUpdated", message.id, message.channel.id, "<deleted>");
         });
 
         this.client.login(token).catch(onError).then(onSuccess);
@@ -85,6 +101,7 @@ export class DiscordChatModule extends ChatModule {
             let lastMessageDC;
             try {
                 lastMessageDC = dm[1].messages.cache.get(dm[1].lastMessageId) ?? await dm[1].messages.fetch(dm[1].lastMessageId);
+                // TODO appears to be invalid, shows as "undefined" in UI if the last message in chat was deleted at some point (todo just fetch the next normal one)
             } catch (e) {
                 logger.error(e);
             }
@@ -101,9 +118,10 @@ export class DiscordChatModule extends ChatModule {
         let messages = [];
 
         let channel = await this.client.channels.fetch(channelId);
-        let fetchedMessages = channel.messages.fetch({ limit: 100 });
+        let fetchedMessages = await channel.messages.fetch({ limit: 100 });
 
-        for (const message of fetchedMessages) {
+        for (let message of fetchedMessages) {
+            message = message[1];
             messages.push(new Message(message.id, channelId, message.author.id, message.author.displayName, message.content, message.createdAt));
         }
 

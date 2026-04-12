@@ -1,6 +1,6 @@
 STRUCTURE S2C & C2S MESSAGE {
     "type": "...",
-    "data". {
+    "data": {
         ...
     }
 }
@@ -26,7 +26,7 @@ C2S type=messageSent data={
 S2C type=messageReceived data={
     "chatId": "...",
     "module": "...",
-    "content": "..."
+    "message": Message
 }
 
 S2C type=messageUpdated data={
@@ -56,7 +56,8 @@ C2S type=requestMessages data={
 }
 
 -> RES S2C type=messageList data={
-    messages: [
+    "chatId": "...",
+    "messages": [
         Message...
     ]
 }

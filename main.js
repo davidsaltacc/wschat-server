@@ -6,19 +6,54 @@ import { logger, httpLogger } from "./logger.js";
 import { createServer } from "https";
 import { createServer as createInsecureServer } from "http";
 import { WebSocketServer } from "ws";
-import { readFileSync } from "fs";
+import { readFile, readFileSync } from "fs";
 
 initAuth();
 
 logger.info("Creating server");
 
-const server = (USE_HTTP ? createInsecureServer : createServer)(USE_HTTP ? {} : {
+const serveWebUI = process.argv[2]?.indexOf("--serve-ui") >= 0;
+
+const server = /*(USE_HTTP ? createInsecureServer : createServer)*/createServer(USE_HTTP ? {} : {
     cert: readFileSync("certs/cert.pem"),
     key: readFileSync("certs/key.pem")
 }, function handleRequest(req, res) {
+
     httpLogger(req, res);
+
+    let path = new URL(req.url, "https://127.0.0.1" /* can be anything, only for parsing */).pathname.substring(1).split("/");
+    if (serveWebUI) {
+
+        if (path[0]?.length === 0) {
+            path[0] = null;
+        }
+
+        let filePath = "web-ui/" + (path[0] ?? "index.html");
+
+        readFile(filePath, (error, content) => {
+            if (error) {
+                if (error.code == "ENOENT" || error.code == "EISDIR") {
+                    res.writeHead(404);
+                    res.end();
+                } else {
+                    logger.error(error);
+                    res.writeHead(500);
+                    res.end(); 
+                }
+            }
+            else {
+                res.writeHead(200);
+                res.end(content, "utf-8");
+            }
+        });
+
+        return;
+
+    }
+
     res.writeHead(403);
     res.end();
+
 });
 
 const wss = new WebSocketServer({ noServer: true });
@@ -35,137 +70,144 @@ wss.on("connection", function connection(ws, request) {
     ws.on("error", logger.error);
   
     ws.on("message", function message(message) {
-        
-        const response = JSON.parse(message.toString("utf-8"));
-        const type = response.type;
-        const data = response.data;
 
-        switch (type) {
-            case "disconnect": {
-                ws.close(1001);
-                break;
-            }
-            case "chatOpened": {
-                ws.openChat = data.chatId;
-                break;
-            }
-            case "messageSent": {
-                
-                for (const module of modules) {
-                    if (module.getId() == data.module) {
-                        module.sendMessage(data.chatId, data.content);
-                        break;
-                    }
+        try {
+            
+            const response = JSON.parse(message.toString("utf-8"));
+            const type = response.type;
+            const data = response.data;
+
+            switch (type) {
+                case "disconnect": {
+                    ws.close(1001);
+                    break;
                 }
-
-                break;
-            }
-            case "requestChats": {
-
-                const fetchTasks = [];
-
-                for (const module of modules) {
-                    fetchTasks.push((async () => {
-                        return {
-                            module: module.getId(),
-                            chats: await module.fetchAllChats()
-                        };
-                    })());
+                case "chatOpened": {
+                    ws.openChat = data.chatId;
+                    break;
                 }
-
-                Promise.all(fetchTasks).then(fetchedChatsList => {
-
-                    const chats = [];
-
-                    for (const list of fetchedChatsList) {
-                        for (const chat of list.chats) {
-                            chats.push({
-                                chatId: chat.chatId,
-                                chatName: chat.chatName,
-                                module: list.module,
-                                lastMessage: {
-                                    messageId: chat.lastMessage.messageId,
-                                    authorId: chat.lastMessage.authorId,
-                                    authorDisplayName: chat.lastMessage.authorDisplayName,
-                                    content: chat.lastMessage.content,
-                                    date: chat.lastMessage.date?.getTime()
-                                }
-                            });
-                        }
-                    }
+                case "messageSent": {
                     
-                    ws.send(JSON.stringify({
-                        type: "chatList",
-                        data: {
-                            chats
+                    for (const module of modules) {
+                        if (module.getId() == data.module) {
+                            module.sendMessage(data.chatId, data.content);
+                            break;
                         }
-                    }));
+                    }
 
-                });
+                    break;
+                }
+                case "requestChats": {
 
-                break;
-            }
-            case "requestMessages": {
+                    const fetchTasks = [];
 
-                for (const module of modules) {
-                    if (module.getId() == data.module) {
-                        module.fetchMessagesInChat(data.chatId).then(fetchedMessages => {
+                    for (const module of modules) {
+                        fetchTasks.push((async () => {
+                            return {
+                                module: module.getId(),
+                                chats: await module.fetchAllChats()
+                            };
+                        })());
+                    }
 
-                            const messages = [];
+                    Promise.all(fetchTasks).then(fetchedChatsList => {
 
-                            for (const message of fetchedMessages) {
-                                messages.push({
-                                    messageId: message.messageId,
-                                    authorId: message.authorId,
-                                    authorDisplayName: message.authorDisplayName,
-                                    content: message.content,
-                                    date: message.date.getTime()
+                        const chats = [];
+
+                        for (const list of fetchedChatsList) {
+                            for (const chat of list.chats) {
+                                chats.push({
+                                    chatId: chat.chatId,
+                                    chatName: chat.chatName,
+                                    module: list.module,
+                                    lastMessage: {
+                                        messageId: chat.lastMessage.messageId,
+                                        authorId: chat.lastMessage.authorId,
+                                        authorDisplayName: chat.lastMessage.authorDisplayName,
+                                        content: chat.lastMessage.content,
+                                        date: chat.lastMessage.date?.getTime()
+                                    }
                                 });
                             }
+                        }
+                        
+                        ws.send(JSON.stringify({
+                            type: "chatList",
+                            data: {
+                                chats
+                            }
+                        }));
 
-                            ws.send(JSON.stringify({
-                                type: "messageList",
-                                data: {
-                                    messages
-                                }
-                            }));
+                    });
 
-                        });
-                        break;
-                    }
+                    break;
                 }
+                case "requestMessages": {
 
-                break;
-            }
-            case "requestUserInfo": {
-                
-                for (const module of modules) {
-                    if (module.getId() == data.module) {
-                        module.fetchUserInfo(data.id).then(fetchedUserData => {
+                    for (const module of modules) {
+                        if (module.getId() == data.module) {
+                            module.fetchMessagesInChat(data.chatId).then(fetchedMessages => {
 
-                            ws.send(JSON.stringify({
-                                type: "userInfo",
-                                data: {
-                                    info: {
-                                        id: data.id,
-                                        displayName: fetchedUserData.displayName,
-                                        uniqueName: fetchedUserData.uniqueName,
-                                        biography: fetchedUserData.biography,
-                                        creationDate: fetchedUserData.creationDate.getTime()
+                                const messages = [];
+
+                                for (const message of fetchedMessages) {
+                                    messages.push({
+                                        messageId: message.messageId,
+                                        authorId: message.authorId,
+                                        authorDisplayName: message.authorDisplayName,
+                                        content: message.content,
+                                        date: message.date.getTime()
+                                    });
+                                }
+
+                                ws.send(JSON.stringify({
+                                    type: "messageList",
+                                    data: {
+                                        chatId: data.chatId,
+                                        messages
                                     }
-                                }
-                            }));
+                                }));
 
-                        })
-                        break;
+                            });
+                            break;
+                        }
                     }
-                }
 
-                break;
+                    break;
+                }
+                case "requestUserInfo": {
+                    
+                    for (const module of modules) {
+                        if (module.getId() == data.module) {
+                            module.fetchUserInfo(data.id).then(fetchedUserData => {
+
+                                ws.send(JSON.stringify({
+                                    type: "userInfo",
+                                    data: {
+                                        info: {
+                                            id: data.id,
+                                            displayName: fetchedUserData.displayName,
+                                            uniqueName: fetchedUserData.uniqueName,
+                                            biography: fetchedUserData.biography,
+                                            creationDate: fetchedUserData.creationDate.getTime()
+                                        }
+                                    }
+                                }));
+
+                            })
+                            break;
+                        }
+                    }
+
+                    break;
+                }
+                default: {
+                    break;
+                }
             }
-            default: {
-                break;
-            }
+
+        } catch (e) {
+            logger.error(e, "failed to handle request " + message);
         }
 
     });
@@ -250,7 +292,13 @@ for (const module of modules) {
                 data: {
                     chatId: message.chatId,
                     module: module.getId(),
-                    content: message.content
+                    message: {
+                        messageId: message.messageId,
+                        authorId: message.authorId,
+                        authorDisplayName: message.authorDisplayName,
+                        content: message.content,
+                        date: message.date.getTime()
+                    }
                 }
             }));
         }

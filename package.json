@@ -27,6 +27,7 @@
     },
     "scripts": {
         "main": "node main.js",
+        "main-ui": "node main.js --serve-ui",
         "auth": "node authenticate_modules.js",
         "make_token": "node make_token.js"
     }
