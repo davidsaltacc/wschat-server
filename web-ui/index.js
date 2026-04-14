@@ -122,36 +122,97 @@ function constructChatMessages(chat) {
         };
         cloned.querySelector("#basemessage-author").id = "message-" + message.messageId + "-author";
         
-        cloned.querySelector("#basemessage-content").innerText = message.content;
-        cloned.querySelector("#basemessage-content").id = "message-" + message.messageId + "-content";
+        const contentText = cloned.querySelector("#basemessage-content");
+
+        contentText.innerText = message.content;
+        contentText.id = "message-" + message.messageId + "-content";
         
         cloned.querySelector("#basemessage-date").innerText = message.date;
         cloned.querySelector("#basemessage-date").id = "message-" + message.messageId + "-date";
 
         cloned.querySelector("#basemessage-date-nice").id = "message-" + message.messageId + "-date-nice";
 
-        cloned.querySelector("#basemessage-button-delete").onclick = () => {
+        if (chat.supportsDeleting) {
 
-            if (!chat.supportsDeleting) {
-                return;
-            }
+            cloned.querySelector("#basemessage-button-delete").onclick = () => {
+    
+                ws.send(JSON.stringify({
+                    type: "messageDeleted",
+                    data: {
+                        chatId: chat.chatId,
+                        module: chat.module,
+                        messageId: message.messageId
+                    }
+                }));
+    
+            };
+            cloned.querySelector("#basemessage-button-delete").id = "message-" + message.messageId + "-button-delete";
 
-            ws.send(JSON.stringify({
-                type: "messageDeleted",
-                data: {
-                    chatId: chat.chatId,
-                    module: chat.module,
-                    messageId: message.messageId
-                }
-            }));
+        }
 
-        };
-        cloned.querySelector("#basemessage-button-delete").id = "message-" + message.messageId + "-button-delete";
+        if (chat.supportsEditing) {
 
-        cloned.querySelector("#basemessage-button-edit").onclick = () => {
+            const editContainer = cloned.querySelector("#basemessage-edit-container");
+            const editBox = cloned.querySelector("#basemessage-edit-box");
+            const cancelEditButtton = cloned.querySelector("#basemessage-cancel-edited-button");
+            const saveEditButton = cloned.querySelector("#basemessage-save-edited-button");
 
-        };
-        cloned.querySelector("#basemessage-button-edit").id = "message-" + message.messageId + "-button-edit";
+            cloned.querySelector("#basemessage-button-edit").onclick = () => {
+
+                contentText.style.display = "none";
+                editContainer.style.display = "";
+
+                editBox.value = message.content;
+                editBox.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+
+                cancelEditButtton.onclick = () => {
+                    contentText.style.display = "";
+                    editContainer.style.display = "none";
+                };
+
+                saveEditButton.onclick = () => {
+
+                    contentText.style.display = "";
+                    editContainer.style.display = "none";
+                    
+                    if (editBox.value.length === 0) {
+                        
+                        ws.send(JSON.stringify({
+                            type: "messageDeleted",
+                            data: {
+                                chatId: chat.chatId,
+                                module: chat.module,
+                                messageId: message.messageId
+                            }
+                        }));
+
+                    } else if (message.content.trim() !== editBox.value.trim()) {
+
+                        ws.send(JSON.stringify({
+                            type: "messageUpdated",
+                            data: {
+                                chatId: chat.chatId,
+                                module: chat.module,
+                                messageId: message.messageId,
+                                newContent: editBox.value
+                            }
+                        }));
+
+                    }
+
+                };
+
+            };
+            cloned.querySelector("#basemessage-button-edit").id = "message-" + message.messageId + "-button-edit";
+
+            editContainer.style.display = "none";
+
+            editContainer.id = "message-" + message.messageId + "-edit-box";
+            editBox.id = "message-" + message.messageId + "-edit-box";
+            cancelEditButtton.id = "message-" + message.messageId + "-cancel-edited-button";
+            saveEditButton.id = "message-" + message.messageId + "-save-edited-button";
+
+        }
 
     }
 

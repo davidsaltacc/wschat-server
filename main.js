@@ -215,7 +215,7 @@ wss.on("connection", function connection(ws, request) {
                     break;
 
                 }
-                case "messageEdited": {
+                case "messageUpdated": {
 
                     for (const module of modules) {
                         if (module.getId() == data.module) {
