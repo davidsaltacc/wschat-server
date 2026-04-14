@@ -8,4 +8,4 @@ port=33852
 useTLS=true
 
 # comma seperated list of enabled modules (ids)
-enabledModules=discord
+enabledModules=discord,whatsapp

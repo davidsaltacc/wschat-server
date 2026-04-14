@@ -2,6 +2,7 @@
 
 import { logger } from "./logger.js";
 import { DiscordChatModule } from "./chatmodules/discord.js";
+import { WhatsAppChatModule } from "./chatmodules/whatsapp.js";
 import { readFileSync } from "fs";
 
 logger.info("Reading config file");
@@ -24,7 +25,8 @@ for (let line of configFile.split("\n")) {
 }
 
 const allModules = [
-    DiscordChatModule
+    DiscordChatModule,
+    WhatsAppChatModule
 ];
 
 const enabledModulesIds = config["enabledModules"].split(",");

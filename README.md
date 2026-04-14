@@ -6,9 +6,9 @@ Still in development, not yet meant for actual use.
 
 ## Supported Platforms
 
-Discord
+Discord, WhatsApp
 
-(More to come! - WhatsApp will definitely be added)
+(more to possibly come)
 
 # Setup
 
@@ -26,6 +26,10 @@ If ran via `npm run main-ui` (or `node main.js --serve-ui`), it will also listen
 # Security?
 
 Authentication is password-based, it gets hashed on the client and THEN stored to avoid possible infostealers, then the hash gets sent to the server which does some additional authentication. Your password is pretty much guaranteed to not leak out. The actual chats are secure too, as long as you have TLS enabled. It does not provide end-to-end encryption, but as the server software is fully open source, and does not permanently store messages, you should be pretty safe.
+
+# Performance
+
+Should run decently on low-end hardware. The modules for all of the platforms, unless explicitly specified, do not rely on opening a chrome tab and controlling it programatically, they impersonate a real client and communicate with the platforms directly.
 
 # Disclaimer
 

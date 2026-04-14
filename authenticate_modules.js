@@ -6,6 +6,7 @@ const { ENABLED_MODULES } = await import("./config.js"); // dynamic import to st
 
 for (const module of ENABLED_MODULES) {
     
+    console.log("Authenticating " + module.getName())
     await module.authenticate();
 
 }

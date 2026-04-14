@@ -145,3 +145,5 @@ certs
 auths 
 TOKENS
 wschat-server.code-workspace
+states/*
+!states/readme.txt

@@ -99,3 +99,6 @@ S2C type=messagesDeleted data={
 }
 
 C2S type=disconnect data={}
+
+TODO 1. finish whatsapp api, 2. send attachments (on request, ask for attachments via messageId), 3. error handling... don't just crash at any minor inconvenience
+
