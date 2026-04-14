@@ -5,7 +5,7 @@
 port=33852
 
 # DO NOT TOUCH - only intended use is in development environments and will reduce security!
-useTLS=false
+useTLS=true
 
 # comma seperated list of enabled modules (ids)
 enabledModules=discord
