@@ -27,10 +27,12 @@ export class Message {
 
 export class Chat {
 
-    constructor(chatId, chatName, lastMessage) {
+    constructor(chatId, chatName, lastMessage, supportsDeleting, supportsEditing) {
         this.chatId = chatId;
         this.chatName = chatName;
         this.lastMessage = lastMessage;
+        this.supportsDeleting = supportsDeleting;
+        this.supportsEditing = supportsEditing;
     }
 
 }
@@ -96,6 +98,14 @@ export class ChatModule {
 
     sendMessage(chatId, content) {
         throw new Error("sendMessage is not implemented");
+    }
+
+    deleteMessage(chatId, messageId) {
+        throw new Error("deleteMessage is not implemented");
+    }
+
+    editMessage(chatId, messageId, newContent) {
+        throw new Error("editMessage is not implemented");
     }
 
     getId() {

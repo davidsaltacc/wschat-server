@@ -130,6 +130,29 @@ function constructChatMessages(chat) {
 
         cloned.querySelector("#basemessage-date-nice").id = "message-" + message.messageId + "-date-nice";
 
+        cloned.querySelector("#basemessage-button-delete").onclick = () => {
+
+            if (!chat.supportsDeleting) {
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: "messageDeleted",
+                data: {
+                    chatId: chat.chatId,
+                    module: chat.module,
+                    messageId: message.messageId
+                }
+            }));
+
+        };
+        cloned.querySelector("#basemessage-button-delete").id = "message-" + message.messageId + "-button-delete";
+
+        cloned.querySelector("#basemessage-button-edit").onclick = () => {
+
+        };
+        cloned.querySelector("#basemessage-button-edit").id = "message-" + message.messageId + "-button-edit";
+
     }
 
     clearInterval(messagesUpdateInterval);

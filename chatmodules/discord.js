@@ -1,7 +1,7 @@
 "use strict";
 
 import { Chat, ChatModule, DisconnectReason, Message, Person } from "../chats.js";
-import { Client, GroupDMChannel, Message as DCMessage } from "discord.js-selfbot-youtsuho-v13";
+import { Client, GroupDMChannel, Message as DCMessage, DMChannel } from "discord.js-selfbot-youtsuho-v13";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import readline from "readline";
 
@@ -104,7 +104,7 @@ export class DiscordChatModule extends ChatModule {
                 logger.error(e);
             }
             let lastMessage = this.discordMessageToWSCMessage(lastMessageDC);
-            chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : (dm[1].recipient.friendNickname ?? dm[1].recipient.displayName), lastMessage));
+            chats.push(new Chat(dm[1].id, isGroup ? dm[1].name : (dm[1].recipient.friendNickname ?? dm[1].recipient.displayName), lastMessage, true, true));
         }
 
         return chats;
@@ -134,9 +134,19 @@ export class DiscordChatModule extends ChatModule {
     }
 
     sendMessage(channelId, content) {
+        this.getChannelById(channelId).then(channel => channel.send(content));
+    }
 
-        this.client.channels.fetch(channelId).then(channel => channel.send(content));
+    deleteMessage(channelId, messageId) {
+        this.getChannelById(channelId).then(channel => channel.messages.delete(messageId));
+    }
 
+    editMessage(channelId, messageId, newContent) {
+        this.getChannelById(channelId).then(channel => channel.messages.edit(messageId, { content: newContent }));
+    }
+
+    getChannelById(channelId) {
+        return (new Promise((res, _) => res(this.client.channels.cache.get(channelId))) ?? this.client.channels.fetch(channelId));
     }
 
     /**

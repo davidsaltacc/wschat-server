@@ -309,6 +309,22 @@ button {
     font-size: 0.96rem;
 }
 
+.chat-message-date-buttons {
+    align-items: center;
+}
+
+.chat-message-button {
+    margin: 0;
+    margin-right: 4px;
+    font-size: 0.96rem;
+    color: #a0a0a0;
+    cursor: pointer;
+}
+
+.chat-message-button:first {
+    margin-left: 5px;
+}
+
 .chat-message-content {
     margin: 0; 
     max-width: 100%; 

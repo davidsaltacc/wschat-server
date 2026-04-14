@@ -126,7 +126,9 @@ wss.on("connection", function connection(ws, request) {
                                         authorDisplayName: chat.lastMessage.authorDisplayName,
                                         content: chat.lastMessage.content,
                                         date: chat.lastMessage.date?.getTime()
-                                    }
+                                    },
+                                    supportsDeleting: chat.supportsDeleting,
+                                    supportsEditing: chat.supportsEditing
                                 });
                             }
                         }
@@ -200,6 +202,26 @@ wss.on("connection", function connection(ws, request) {
                     }
 
                     break;
+                }
+                case "messageDeleted": {
+
+                    for (const module of modules) {
+                        if (module.getId() == data.module) {
+                            module.deleteMessage(data.chatId, data.messageId);
+                            break;
+                        }
+                    }
+
+                }
+                case "messageEdited": {
+
+                    for (const module of modules) {
+                        if (module.getId() == data.module) {
+                            module.editMessage(data.chatId, data.messageId, data.newContent);
+                            break;
+                        }
+                    }
+
                 }
                 default: {
                     break;

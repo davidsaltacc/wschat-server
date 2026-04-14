@@ -23,6 +23,19 @@ C2S type=messageSent data={
     "content": "..."
 }
 
+C2S IF chat.supportsEditing type=messageUpdated data={
+    "chatId": "...",
+    "messageId: "..."
+    "module": "...",
+    "newContent": "..."
+}
+
+C2S IF chat.supportsDeleting type=messageDeleted data={
+    "chatId": "...",
+    "messageId: "..."
+    "module": "..."
+}
+
 S2C type=messageReceived data={
     "chatId": "...",
     "module": "...",
@@ -44,6 +57,8 @@ C2S type=requestChats data={}
             "chatId": "...",
             "chatName": "...",
             "module": "...",
+            "supportsDeleting": true|false,
+            "supportsEditing": true|false,
             "lastMessage": Message
         },
         ...

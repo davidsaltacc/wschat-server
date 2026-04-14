@@ -76,7 +76,11 @@
                 <div class="flex-col chat-message-container">
                     <div class="flex-row row-center-space-between chat-message-firstrow">
                         <p id="basemessage-author" class="chat-message-author"></p>
-                        <p id="basemessage-date-nice" class="chat-message-date"></p>
+                        <div class="flex-row chat-message-date-buttons">
+                            <p id="basemessage-button-delete" class="chat-message-button">[delete]</p>
+                            <p id="basemessage-button-edit" class="chat-message-button">[edit]</p>
+                            <p id="basemessage-date-nice" class="chat-message-date"></p>
+                        </div>
                         <div id="basemessage-date" class="hidden"></div>
                     </div>
                     <p id="basemessage-content" class="chat-message-content"></p>
