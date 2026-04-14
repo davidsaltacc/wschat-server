@@ -1,7 +1,7 @@
 "use strict";
 
 import { Chat, ChatModule, DisconnectReason, Message, Person } from "../chats.js";
-import { Client, GroupDMChannel, Message as DCMessage, DMChannel } from "discord.js-selfbot-youtsuho-v13";
+import { Client, GroupDMChannel, Message as DCMessage } from "discord.js-selfbot-youtsuho-v13";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import readline from "readline";
 
@@ -165,10 +165,38 @@ export class DiscordChatModule extends ChatModule {
             content += "<" + message.attachments.size + " attachments>\n"
         }
         if (message?.stickers?.size > 0) {
-            content += "<sticker>";
+            content += "<sticker>\n";
         }
         if (message?.system) {
-            content += "<system message>";
+            switch (message?.type) {
+                case "RECIPIENT_ADD":
+                    content += (message?.author?.friendNickname ?? message?.author?.displayName) + " added " + (message?.mentions?.users?.first()?.friendNickname ?? message?.mentions?.users?.first()?.displayName) + "to group chat\n";
+                    break;
+                case "RECIPIENT_REMOVE":
+                    content += (message?.author?.friendNickname ?? message?.author?.displayName) + " removed " + (message?.mentions?.users?.first()?.friendNickname ?? message?.mentions?.users?.first()?.displayName) + " from group chat\n";
+                    break;
+                case "CALL":
+                    content += (message?.author?.friendNickname ?? message?.author?.displayName) + " started a call\n";
+                    break;
+                case "CHANNEL_NAME_CHANGE":
+                    content += (message?.author?.friendNickname ?? message?.author?.displayName) + " changed the chat name to ";
+                    break;
+                case "CHANNEL_ICON_CHANGE":
+                    content += (message?.author?.friendNickname ?? message?.author?.displayName) + " changed the chat icon\n";
+                    break;
+                case "CHANNEL_PINNED_MESSAGE":
+                    content += (message?.author?.friendNickname ?? message?.author?.displayName) + " pinned a message\n";
+                    break;
+                default:
+                    content += "<unknown system message>\n";
+                    break;
+            };
+        }
+        if (message?.type === "POLL_RESULT") {
+            content += "<poll result>\n";
+        }
+        if (message?.type === "REPLY") {
+            content += "<in reply to another message>\n";
         }
         content += message?.cleanContent ?? "";
         if (content.length === 0) {
