@@ -212,6 +212,8 @@ wss.on("connection", function connection(ws, request) {
                         }
                     }
 
+                    break;
+
                 }
                 case "messageEdited": {
 
@@ -221,6 +223,8 @@ wss.on("connection", function connection(ws, request) {
                             break;
                         }
                     }
+                    
+                    break;
 
                 }
                 default: {
@@ -337,6 +341,21 @@ for (const module of modules) {
                     module: module.getId(),
                     messageId,
                     newContent
+                }
+            }));
+        }
+    });
+    module.on("messagesDeleted", (messageIds, chatId) => {
+        if (!anyClientsOnline()) {
+            return;
+        }
+        for (const ws of wss.clients) {
+            ws.send(JSON.stringify({
+                type: "messagesDeleted",
+                data: {
+                    chatId,
+                    module: module.getId(),
+                    messageIds
                 }
             }));
         }

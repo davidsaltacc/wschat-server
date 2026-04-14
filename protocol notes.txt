@@ -92,4 +92,10 @@ C2S type=requestUserInfo data={
     }
 }
 
+S2C type=messagesDeleted data={
+    chatId: "...",
+    module: "...",
+    messageIds: Message[]
+}
+
 C2S type=disconnect data={}

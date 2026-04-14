@@ -70,7 +70,7 @@ export class DiscordChatModule extends ChatModule {
             if (message.channel.type !== "DM" && message.channel.type !== "GROUP_DM") {
                 return;
             }
-            this._fireEvent("messageUpdated", message.id, message.channel.id, "<deleted>");
+            this._fireEvent("messagesDeleted", [ message.id ], message.channel.id);
         });
 
         this.client.login(token).catch(onError).then(onSuccess);
@@ -146,7 +146,14 @@ export class DiscordChatModule extends ChatModule {
     }
 
     getChannelById(channelId) {
-        return (new Promise((res, _) => res(this.client.channels.cache.get(channelId))) ?? this.client.channels.fetch(channelId));
+        return new Promise((res, rej) => {
+            let channel = this.client.channels.cache.get(channelId);
+            if (channel) {
+                res(channel);
+            } else {
+                this.client.channels.fetch(channelId).then(res);
+            }
+        });
     }
 
     /**

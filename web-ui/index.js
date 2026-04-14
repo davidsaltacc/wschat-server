@@ -416,7 +416,22 @@ function login(wsUrl) {
                     let message = chat.messages.filter(c => c.messageId === data.messageId);
                     if (message.length > 0) {
                         message = message[0];
-                        chat.messages[chat.messages.indexOf(message)].content = data.newContent;
+                        message.content = data.newContent;
+                    }
+                    constructChatList();
+                    if (openedChatId === data.chatId) {
+                        constructChatMessages(chat);
+                    }
+                }
+                break;
+            }
+            case "messagesDeleted": {
+                let chat = loadedChats.filter(c => c.chatId === data.chatId);
+                if (chat.length > 0) {
+                    chat = chat[0];
+                    const messages = chat.messages.filter(c => data.messageIds.indexOf(c.messageId) >= 0);
+                    for (const message of messages) {
+                        delete chat.messages[chat.messages.indexOf(message)];
                     }
                     constructChatList();
                     if (openedChatId === data.chatId) {
