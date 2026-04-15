@@ -1,9 +1,9 @@
 "use strict";
 
 import makeWASocket, { Browsers, DisconnectReason, makeCacheableSignalKeyStore, useMultiFileAuthState } from "baileys";
-import { ChatModule } from "../chats.js";
+import { Chat, ChatModule, Message, DisconnectReason as _DisconnectReason } from "../chats.js";
 import { logger } from "../logger.js";
-import { existsSync, mkdirSync, openAsBlob, rmSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, openAsBlob, readFileSync, rmSync, unlinkSync, writeFileSync } from "fs";
 import NodeCache from "node-cache";
 import QRCode from "qrcode";
 
@@ -27,6 +27,7 @@ class Store {
     constructor() {
         this._messages = {};
         this._chats = {};
+        this._contacts = {};
     }
     
     /** 
@@ -36,15 +37,21 @@ class Store {
 
         socket.ev.on("messaging-history.set", ({
 			chats: newChats,
-			messages: newMessages
+			messages: newMessages,
+            contacts: newContacts
 		}) => {
 
             for (const message of newMessages) {
 				this._messages[normalizeJid(message.key.remoteJid)] ??= {};
                 this._messages[normalizeJid(message.key.remoteJid)][message.key] = message;
 			}
+
             for (const chat of newChats) {
 				this._chats[chat.id] = chat;
+			}
+            
+            for (const contact of newContacts) {
+				this._contacts[contact.id] = contact;
 			}
 
         });
@@ -64,8 +71,10 @@ class Store {
             if (type == "notify") {
 
                 for (const update of updates) {
-                    this._messages[normalizeJid(update.key.remoteJid)][update.update.key]?.message?.conversation = update?.update?.message?.conversation;
-                    this._messages[normalizeJid(update.key.remoteJid)][update.update.key]?.message?.extendedTextMessage = update?.update?.message?.extendedTextMessage;
+                    this._messages[normalizeJid(update.key.remoteJid)][update.key] = {
+                        ...this._messages[normalizeJid(update.key.remoteJid)][update.key],
+                        ...update.update
+                    };
 				}
 
             }
@@ -95,10 +104,35 @@ class Store {
             }
         });
 
+        socket.ev.on("contacts.upsert", contacts => {
+            for (const contact of contacts) {
+				this._contacts[contact.id] = contact;
+            }
+        });
+
+        socket.ev.on("contacts.update", contacts => {
+            for (const contact of contacts) {
+				this._contacts[contact.id] = {
+                    ...this._contacts[contact.id],
+                    ...contact
+                }
+            }
+        });
+
     }
 
     getMessage(key) {
-        return this._messages[normalizeJid(message.key.remoteJid)][key];
+        return this._messages[normalizeJid(key.remoteJid)][key];
+    }
+
+    getLatestMessage(jid) {
+        const keys = this._messages[normalizeJid(jid)].keys();
+        keys.sort((a, b) => (this._messages[normalizeJid(jid)][b].messageTimestamp ?? 0) - (this._messages[normalizeJid(jid)][a].messageTimestamp ?? 0));
+        return this._messages[normalizeJid(jid)][keys[0]];
+    }
+    
+    getAllMessagesInChat(jid) {
+        return this._messages[normalizeJid(jid)].values();
     }
 
     setMessage(message) {
@@ -113,6 +147,22 @@ class Store {
         this._chats[normalizeJid(chat.newJid)] = chat;
     }
 
+    getAllChats() {
+        return this._chats.values();
+    } 
+
+    getContact(id) {
+        return this._contacts[id];
+    }
+
+    setContact(contact) {
+        this._contacts[contact.id] = contact;
+    }
+
+    existsOnDisk() {
+        return existsSync("states/whatsapp/chats.json") && existsSync("states/whatsapp/messages.json") && existsSync("states/whatsapp/contacts.json");
+    }
+
     saveToDisk() { // we have to save whatsapp chats to disk, because unlike with discord we can't just really simply re-fetch some stuff as whatsapp is quite a bit stricter
 
         if (existsSync("states/whatsapp")) {
@@ -121,15 +171,53 @@ class Store {
 
         writeFileSync("states/whatsapp/chats.json", JSON.stringify(this._chats));
         writeFileSync("states/whatsapp/messages.json", JSON.stringify(this._messages));
+        writeFileSync("states/whatsapp/contacts.json", JSON.stringify(this._contacts));
 
     }
 
     readFromDisk() {
-        // TODO
+
+        try {
+            if (existsSync("states/whatsapp/chats.json")) {
+                this._chats = JSON.parse(readFileSync("states/whatsapp/chats.json"));
+            }
+        } catch (e) {
+            logger.error(e, "failed to load chats");
+        }
+
+        try {
+            if (existsSync("states/whatsapp/messages.json")) {
+                this._messages = JSON.parse(readFileSync("states/whatsapp/messages.json"));
+            }
+        } catch (e) {
+            logger.error(e, "failed to load messages");
+        }
+
+        try {
+            if (existsSync("states/whatsapp/contacts.json")) {
+                this._contacts = JSON.parse(readFileSync("states/whatsapp/contacts.json"));
+            }
+        } catch (e) {
+            logger.error(e, "failed to load contacts");
+        }
+
     }
 
-    purgeMessagesExceptLatest(amount) { // TODO keep `amount` messages in each chat (sort by date, ideally)
-        // TODO
+    purgeMessagesExceptLatest(amount) {
+
+        for (const jid in this._messages) {
+
+            const keys = this._messages[jid].keys();
+
+            keys.sort((a, b) => (this._messages[jid][b].messageTimestamp ?? 0) - (this._messages[jid][a].messageTimestamp ?? 0));
+            const deleted = keys.slice(amount - 1, null);
+            
+            for (const deletedKey of deleted) {
+                delete this._messages[jid][deletedKey];
+            }
+
+        }
+
     }
 
 }
@@ -242,6 +330,169 @@ export class WhatsAppChatModule extends ChatModule {
     
         return sock;
     
+    }
+
+    openConnection(onSuccess, onError) {
+
+        this.makeSock(false).then(sock => {
+
+            this.sock = sock;
+
+            const store = new Store();
+            store.readFromDisk();
+
+            sock.store = store;
+            store.bind(sock);
+
+            const done = () => {
+
+                const save = () => {
+                    store.purgeMessagesExceptLatest(100);
+                    store.saveToDisk();
+                };
+                
+                sock.saveInterval = setInterval(() => save, 15_000);
+
+                process.on("exit", save);
+                process.on("SIGINT", save);
+                process.on("SIGUSR1", save);
+                process.on("SIGUSR2", save);
+                process.on("uncaughtException", save);
+
+                onSuccess();
+
+            };
+
+            sock.restartTries = 0;
+
+            sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
+
+                try {
+                
+                    if (qr) {
+                        sock.end();
+                        onError("not authenticated, please authenticate whatsapp first");
+                        return;
+                    }
+    
+                    if (connection === "close" && lastDisconnect?.error?.output?.statusCode === DisconnectReason.restartRequired) {
+    
+                        this.openConnection(onSuccess, onError);
+                        
+                    } else if (connection === "close" && !!lastDisconnect?.error) {
+    
+                        logger.info("connection closed, error code: " + lastDisconnect.error.output?.statusCode);
+    
+                        if (lastDisconnect.error.output?.statusCode === DisconnectReason.loggedOut) {
+                            onError("invalid session. re-authenticate");
+                            return;
+                        }
+    
+                        if (sock.restartTries > 5) {
+                            logger.info("(whatsapp) Connection closed. Waiting for 5 seconds, then trying to reconnect.");
+                            await new Promise((res, _) => setTimeout(res, 5_000));
+                        } else if (sock.restartTries > 10) {
+                            logger.info("(whatsapp) Connection closed. Waiting for 30 seconds, then trying to reconnect.");
+                            await new Promise((res, _) => setTimeout(res, 30_000));
+                        } else if (sock.restartTries > 20) {
+                            logger.error("(whatsapp) Connection closed after 20 retries, giving up.");
+                            this._fireEvent("closed", _DisconnectReason.CONNECTION_LOST);
+                            return;
+                        } else {
+                            logger.info("(whatsapp) Connection closed. Waiting for 1 second, then trying to reconnect.");
+                            await new Promise((res, _) => setTimeout(res, 1_000));
+                        }
+    
+                        sock.restartTries++;
+    
+                        this.openConnection(onSuccess, onError);
+    
+                    }
+    
+                    if (connection === "open") {
+    
+                        if (sock.restartTries > 0) {
+                            logger.info("(whatsapp) Successfully restored connection.");
+                            sock.restartTries = 0;
+                        }
+
+                        if (sock.store.existsOnDisk()) {
+                            done();
+                        }
+ 
+                    }
+    
+                } catch (e) {
+                    onError(e);
+                    return;
+                }
+    
+            });
+
+            sock.ev.on("messaging-history.set", async ({ chats, contacts, messages, isLatest, progress, syncType }) => {
+
+                if (progress) {
+                    logger.info("whatsapp sync progress at " + progress);
+                }
+        
+                if (progress === 100 && !sock.store.existsOnDisk()) {
+                    done();
+                }
+        
+            });
+
+        });
+
+    }
+
+    closeConnection() {
+
+        this.sock?.end();
+        this._fireEvent("closed", _DisconnectReason.MANUAL_DISCONNECT);
+
+    }
+
+    async fetchAllChats() { 
+        return this.sock.store.getAllChats().map(chat => new Chat(normalizeJid(chat.newJid), chat.displayName ?? chat.name, this.sock.store.getLatestMessage(chat.newJid), true, true));
+    }
+
+    async fetchMessagesInChat(chatId) {
+        return this.sock.store.getAllMessagesInChat(chatId).map(message => this.messageToWSCMessage(message));
+    }
+
+    async fetchUserInfo(userId) {
+        throw new Error("fetchUserInfo is not implemented");
+    }
+
+    sendMessage(chatId, content) {
+        throw new Error("sendMessage is not implemented");
+    }
+
+    deleteMessage(chatId, messageId) {
+        throw new Error("deleteMessage is not implemented");
+    }
+
+    editMessage(chatId, messageId, newContent) {
+        throw new Error("editMessage is not implemented");
+    }
+
+    /**
+     * @param {import("baileys").WAMessage} message 
+     */
+    messageToWSCMessage(message) {
+
+        let content = "";
+
+        if (message.message?.imageMessage) { content += "<image>\n"; } 
+        if (message.message?.documentMessage) { content += "<file>\n"; } 
+        if (message.message?.audioMessage) { content += "<voice message>\n"; }
+        if (message.message?.stickerMessage) { content += "<sticker>\n"; }
+        if (message.message?.viewOnceMessage) { content += "<view-once message>\n"; }
+        if (message.message?.viewOnceMessageV2) { content += "<view-once message>\n"; }
+        if (message.message?.extendedTextMessage?.contextInfo?.quotedMessage) { content += "<in reply to another message>\n"; }
+        content += message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? "";
+
+        return new Message(JSON.stringify(message.key), normalizeJid(message.key.remoteJid), message.key.participant, this.sock.store.getContact(message.key.participant).name ?? message.pushName, content, new Date(message.messageTimestamp));
     }
 
     getId() {
