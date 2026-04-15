@@ -28,6 +28,7 @@ class Store {
         this._messages = {};
         this._chats = {};
         this._contacts = {};
+        this._messageUpdateListeners = [];
     }
     
     /** 
@@ -71,10 +72,14 @@ class Store {
             if (type == "notify") {
 
                 for (const update of updates) {
-                    this._messages[normalizeJid(update.key.remoteJid)][update.key] = {
+                    const newMessage = this._messages[normalizeJid(update.key.remoteJid)][update.key] = {
                         ...this._messages[normalizeJid(update.key.remoteJid)][update.key],
                         ...update.update
                     };
+
+                    for (const listener of this._messageUpdateListeners) {
+                        listener(newMessage);
+                    }
 				}
 
             }
@@ -129,6 +134,10 @@ class Store {
         const keys = this._messages[normalizeJid(jid)].keys();
         keys.sort((a, b) => (this._messages[normalizeJid(jid)][b].messageTimestamp ?? 0) - (this._messages[normalizeJid(jid)][a].messageTimestamp ?? 0));
         return this._messages[normalizeJid(jid)][keys[0]];
+    }
+    
+    getAllMessageKeysInChat(jid) {
+        return this._messages[normalizeJid(jid)].keys();
     }
     
     getAllMessagesInChat(jid) {
@@ -218,6 +227,10 @@ class Store {
 
         }
 
+    }
+
+    listenMessageUpdate(listener) { // utility method that provides a full message instead of a partial when messages get updated
+        this._messageUpdateListeners.push(listener);
     }
 
 }
@@ -439,6 +452,52 @@ export class WhatsAppChatModule extends ChatModule {
                     done();
                 }
         
+            });
+
+            sock.ev.on("messages.upsert", ({ messages, type, requestId }) => {
+                if (type === "notify") {
+                    for (const message of messages) {
+                        
+                        this._fireEvent("messageReceived", this.messageToWSCMessage(message), () => {
+
+                            if (message.key.fromMe) {
+                                return;
+                            }
+
+                            this.sock.readMessages([ message.key ]);
+
+                        });
+
+                    }
+                }
+            });
+
+            store.listenMessageUpdate(message => {
+                this._fireEvent("messageUpdated", update.key.id, normalizeJid(update.key.remoteJid), this.messageToWSCMessage(message));
+            });
+
+            sock.ev.on("messages.delete", ({ keys, jid, all }) => {
+
+                if (all) {
+                    this._fireEvent("messagesDeleted", store.getAllMessageKeysInChat(jid).map(key => key.id), normalizeJid(jid));
+                } else {
+
+                    const deleted = {};
+
+                    for (const key of keys) {
+                        
+                        deleted[normalizeJid(key.remoteJid)] ??= [];
+                        deleted[normalizeJid(key.remoteJid)].push(key.id);
+
+                    }
+
+                    for (const jid in deleted) {
+                        const keys = deleted[jid];
+                        this._fireEvent("messagesDeleted", keys.map(key => key.id), jid);
+                    }
+
+                }
+
             });
 
         });
