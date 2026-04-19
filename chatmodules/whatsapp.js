@@ -74,11 +74,17 @@ class Store {
 			}
 
             for (const chat of newChats) {
-                this._chats.set(chat.id, chat);
+                this._chats.set(normalizeJid(chat.id), {
+                    ...this._chats.get(normalizeJid(chat.id)),
+                    ...chat
+                });
 			}
             
             for (const contact of newContacts) {
-                this._contacts.set(contact.id, contact);
+                this._contacts.set(normalizeJid(contact.id), {
+                    ...this._contacts.get(normalizeJid(contact.id)),
+                    ...contact
+                });
 			}
 
         });
@@ -351,8 +357,6 @@ export class WhatsAppChatModule extends ChatModule {
     
         const { state, saveCreds } = await useMultiFileAuthState("auths/whatsapp_auth_state");
         const groupCache = new NodeCache();
-
-        const store = new Store();
     
         const conf = {
             auth: {
@@ -373,8 +377,8 @@ export class WhatsAppChatModule extends ChatModule {
 
         if (!isForAuth) {
 
-            sock.store = store;
-            store.bind(sock);
+            sock.store = this.store;
+            this.store.bind(sock);
 
         }
 
@@ -396,22 +400,19 @@ export class WhatsAppChatModule extends ChatModule {
 
     openConnection(onSuccess, onError) {
 
+        this.store = new Store();
+        this.store.readFromDisk();
+
         this.makeSock(false).then(sock => {
 
             this.sock = sock;
-
-            const store = new Store();
-            store.readFromDisk();
-
-            sock.store = store;
-            store.bind(sock);
 
             const done = () => {
 
                 const save = (exit, err) => {
                     try {
-                        store.purgeMessagesExceptLatest(100);
-                        store.saveToDisk();
+                        this.store.purgeMessagesExceptLatest(100);
+                        this.store.saveToDisk();
                         if (err) {
                             logger.error(err, "uncaught exception");
                         }
@@ -536,7 +537,7 @@ export class WhatsAppChatModule extends ChatModule {
                 }
             });
 
-            store.listenMessageUpdate(message => {
+            this.store.listenMessageUpdate(message => {
                 this._fireEvent("messageUpdated", message?.key?.id, normalizeJid(message?.key?.remoteJid), this.messageToWSCMessage(message));
             });
 
@@ -570,13 +571,14 @@ export class WhatsAppChatModule extends ChatModule {
 
     closeConnection() {
 
+        this.store.saveToDisk();
         this.sock?.end();
         this._fireEvent("closed", _DisconnectReason.MANUAL_DISCONNECT);
 
     }
 
     async fetchAllChats() { 
-        return this.sock.store.getAllChats().map(chat => new Chat(normalizeJid(chat.id), chat.displayName ?? chat.name, this.messageToWSCMessage(this.sock.store.getLatestMessage(chat.id)), true, true));
+        return this.sock.store.getAllChats().map(chat => new Chat(normalizeJid(chat.id), chat.name ?? this.sock.store.getContact(chat.id)?.name ?? chat.displayName ?? "unknown", this.messageToWSCMessage(this.sock.store.getLatestMessage(chat.id)), true, true));
     }
 
     async fetchMessagesInChat(chatId) {
@@ -584,7 +586,7 @@ export class WhatsAppChatModule extends ChatModule {
     }
 
     async fetchUserInfo(userId) {
-        return new Person(userId, this.sock.store.getContact(userId).name, "", await this.sock.fetchStatus([ userId ])[0].toString(), new Date(0));
+        return new Person(userId, this.sock.store.getContact(userId)?.name, "", await this.sock.fetchStatus([ userId ])[0].toString(), new Date(0));
     }
 
     sendMessage(chatId, content) {
@@ -619,7 +621,7 @@ export class WhatsAppChatModule extends ChatModule {
         if (message.message?.extendedTextMessage?.contextInfo?.quotedMessage) { content += "<in reply to another message>\n"; }
         content += message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? "";
 
-        return new Message(JSON.stringify(message.key), normalizeJid(message.key?.remoteJid), message.key?.participant, this.sock.store.getContact(message.key?.participant)?.name ?? message.pushName, content, new Date(message.messageTimestamp));
+        return new Message(JSON.stringify(message.key), normalizeJid(message.key?.remoteJid), message.key?.participant, this.sock.store.getContact(message.key?.participant)?.name ?? message.pushName, content, new Date(parseInt(message.messageTimestamp) * 1000));
     }
 
     getId() {
