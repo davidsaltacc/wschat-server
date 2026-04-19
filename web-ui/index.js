@@ -107,7 +107,7 @@ function constructChatMessages(chat) {
                 q("#personoverlay-uname").innerText = user.uniqueName;
                 q("#personoverlay-id").innerText = user.id;
                 q("#personoverlay-bio").innerText = user.biography;
-                q("#personoverlay-date").innerText = new Date(user.creationDate).toLocaleString();
+                q("#personoverlay-date").innerText = user.creationDate === 0 ? "" : new Date(user.creationDate).toLocaleString();
 
             };
 

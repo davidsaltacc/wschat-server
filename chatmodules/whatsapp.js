@@ -1,7 +1,7 @@
 "use strict";
 
 import makeWASocket, { Browsers, DisconnectReason, makeCacheableSignalKeyStore, useMultiFileAuthState } from "baileys";
-import { Chat, ChatModule, Message, DisconnectReason as _DisconnectReason } from "../chats.js";
+import { Chat, ChatModule, Message, Person, DisconnectReason as _DisconnectReason } from "../chats.js";
 import { logger } from "../logger.js";
 import { existsSync, mkdirSync, openAsBlob, readFileSync, rmSync, unlinkSync, writeFileSync } from "fs";
 import NodeCache from "node-cache";
@@ -69,20 +69,18 @@ class Store {
         });
 
         socket.ev.on("messages.update", updates => {
-            if (type == "notify") {
 
-                for (const update of updates) {
-                    const newMessage = this._messages[normalizeJid(update.key.remoteJid)][update.key] = {
-                        ...this._messages[normalizeJid(update.key.remoteJid)][update.key],
-                        ...update.update
-                    };
+            for (const update of updates) {
+                const newMessage = this._messages[normalizeJid(update.key.remoteJid)][update.key] = {
+                    ...this._messages[normalizeJid(update.key.remoteJid)][update.key],
+                    ...update.update
+                };
 
-                    for (const listener of this._messageUpdateListeners) {
-                        listener(newMessage);
-                    }
-				}
+                for (const listener of this._messageUpdateListeners) {
+                    listener(newMessage);
+                }
+			}
 
-            }
         });
 
         socket.ev.on("messages.delete", ({ keys, jid, all }) => {
@@ -239,12 +237,14 @@ export class WhatsAppChatModule extends ChatModule {
 
     async authenticate() {
 
-        rmSync("auths/auth_state", { recursive: true });
-        mkdirSync("auths/auth_state");
+        if (existsSync("auths/whatsapp_auth_state")) {
+            rmSync("auths/whatsapp_auth_state", { recursive: true });
+        }
+        mkdirSync("auths/whatsapp_auth_state");
 
-        let sock = this.makeSock(true);
+        let sock = await this.makeSock(true);
 
-        const onQrCodeUrl = url => console.log("QR code available at: " + url + "\nPlease scan it with your WhatsApp mobile app to link it.\nWSChat will show up as \"Google Chrome\" in your linked devices.");
+        const onQrCodeUrl = url => console.log("QR code available at: " + url + "\nPlease scan it with your WhatsApp mobile app to link it.\nWSChat will show up as \"Google Chrome\" in your linked devices.\n\nPlease do note: Errors and other log statements will appear. Just ignore them.");
 
         await new Promise((res, rej) => {
     
@@ -255,11 +255,15 @@ export class WhatsAppChatModule extends ChatModule {
                     const { connection, lastDisconnect, qr } = update;
     
                     if (connection === "close" && lastDisconnect?.error?.output?.statusCode === DisconnectReason.restartRequired) {
-                        sock = await makeSock(true);
+                        sock = await this.makeSock(true);
                         sock.ev.on("connection.update", onUpdate);
                     } else if (connection === "close" && !!lastDisconnect?.error) {
-                        logger.info("connection closed, error code: " + lastDisconnect.error.output?.statusCode);
-                        rej(new Error(lastDisconnect?.error?.output));
+                        logger.info("connection closed, error code: " + lastDisconnect?.error?.output?.statusCode);
+                        rej(lastDisconnect?.error?.output);
+                        return;
+                    } else if (connection === "close" && !lastDisconnect?.error) {
+                        logger.info("connection closed with no errors");
+                        res();
                         return;
                     }
     
@@ -277,7 +281,7 @@ export class WhatsAppChatModule extends ChatModule {
                     }
                     
                     if (connection === "open") {
-                        res();
+                        await sock.end();
                     }
     
                 } catch (e) {
@@ -288,10 +292,10 @@ export class WhatsAppChatModule extends ChatModule {
             };
     
             sock.ev.on("connection.update", onUpdate);
-    
+
         });
-    
-        await sock.end();
+
+        process.exit(0);
 
     }
 
@@ -303,7 +307,7 @@ export class WhatsAppChatModule extends ChatModule {
 
     async makeSock(isForAuth) {
     
-        const { state, saveCreds } = await useMultiFileAuthState("auth_state");
+        const { state, saveCreds } = await useMultiFileAuthState("auths/whatsapp_auth_state");
         const groupCache = new NodeCache();
 
         const store = new Store();
@@ -320,14 +324,18 @@ export class WhatsAppChatModule extends ChatModule {
             syncFullHistory: false,
             shouldSyncHistoryMessage: () => !isForAuth,
             cachedGroupMetadata: async (jid) => groupCache.get(jid),
-            getMessage: async (key) => await store.getMessage(key)
+            getMessage: isForAuth ? undefined : async (key) => await store.getMessage(key)
         };
     
         const sock = makeWASocket(conf);
 
-        sock.store = store;
-        store.bind(sock);
-        
+        if (!isForAuth) {
+
+            sock.store = store;
+            store.bind(sock);
+
+        }
+
         sock.ev.on("creds.update", saveCreds);
     
         sock.ev.on("groups.update", async ([ event ]) => {
@@ -339,7 +347,6 @@ export class WhatsAppChatModule extends ChatModule {
             const metadata = await sock.groupMetadata(event.id);
             groupCache.set(event.id, metadata);
         });
-
     
         return sock;
     
@@ -520,19 +527,19 @@ export class WhatsAppChatModule extends ChatModule {
     }
 
     async fetchUserInfo(userId) {
-        throw new Error("fetchUserInfo is not implemented");
+        return new Person(userId, this.sock.store.getContact(userId).name, "", await this.sock.fetchStatus([ userId ])[0].toString(), new Date(0));
     }
 
     sendMessage(chatId, content) {
-        throw new Error("sendMessage is not implemented");
+        this.sock.sendMessage(chatId, { text: content });
     }
 
     deleteMessage(chatId, messageId) {
-        throw new Error("deleteMessage is not implemented");
+        this.sock.sendMessage(chatId, { delete: JSON.parse(messageId) });
     }
 
     editMessage(chatId, messageId, newContent) {
-        throw new Error("editMessage is not implemented");
+        this.sock.sendMessage(chatId, { text: newContent, edit: JSON.parse(messageId) });
     }
 
     /**

@@ -26,7 +26,7 @@ for (let line of configFile.split("\n")) {
 
 const allModules = [
     DiscordChatModule,
-    WhatsAppChatModule
+    WhatsAppChatModule // WhatsApp HAS to be last!!! baileys is a pain to deal with, this is the easiest way to solve this
 ];
 
 const enabledModulesIds = config["enabledModules"].split(",");
