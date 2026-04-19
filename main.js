@@ -102,12 +102,20 @@ wss.on("connection", function connection(ws, request) {
                     const fetchTasks = [];
 
                     for (const module of modules) {
-                        fetchTasks.push((async () => {
-                            return {
-                                module: module.getId(),
-                                chats: await module.fetchAllChats()
-                            };
-                        })());
+                        fetchTasks.push(new Promise((res, _) => {
+                            module.fetchAllChats().then(chats => {
+                                res({
+                                    module: module.getId(),
+                                    chats
+                                });
+                            }, err => {
+                                logger.error(err, "failed to fetch chats for module: ");
+                                res({
+                                    module: module.getId(),
+                                    chats: []
+                                });
+                            });
+                        }));
                     }
 
                     Promise.all(fetchTasks).then(fetchedChatsList => {
@@ -121,11 +129,11 @@ wss.on("connection", function connection(ws, request) {
                                     chatName: chat.chatName,
                                     module: list.module,
                                     lastMessage: {
-                                        messageId: chat.lastMessage.messageId,
-                                        authorId: chat.lastMessage.authorId,
-                                        authorDisplayName: chat.lastMessage.authorDisplayName,
-                                        content: chat.lastMessage.content,
-                                        date: chat.lastMessage.date?.getTime()
+                                        messageId: chat.lastMessage?.messageId,
+                                        authorId: chat.lastMessage?.authorId,
+                                        authorDisplayName: chat.lastMessage?.authorDisplayName,
+                                        content: chat.lastMessage?.content,
+                                        date: chat.lastMessage?.date?.getTime()
                                     },
                                     supportsDeleting: chat.supportsDeleting,
                                     supportsEditing: chat.supportsEditing

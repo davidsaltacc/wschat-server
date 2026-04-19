@@ -85,9 +85,12 @@ function constructChatMessages(chat) {
 
     clearMessages();
 
+    chat = chat.slice();
     chat.messages.sort((a, b) => (b.date ?? 0) - (a.date ?? 0));
 
     for (const message of chat.messages) {
+
+        message.messageId = message.messageId.replaceAll("@", "_").replaceAll(".", "_").replaceAll("+", );
 
         const baseMessage = q("#basemessage");
         const cloned = baseMessage.cloneNode(true);
@@ -264,6 +267,9 @@ function openChat(id) {
     if (chat.module == "discord") {
         openChatPlatform.style.color = "#5865f2";
     }
+    if (chat.module == "whatsapp") {
+        openChatPlatform.style.color = "#25d366";
+    }
 
     sendMessageButton.onclick = () => {
 
@@ -321,9 +327,12 @@ function constructChatList() {
     
     loadingChats.style.display = "none";
 
-    loadedChats.sort((a, b) => (b.lastMessage?.date ?? 0) - (a.lastMessage?.date ?? 0)); 
+    let chats = loadedChats.slice();
+    chats.sort((a, b) => (b.lastMessage?.date ?? 0) - (a.lastMessage?.date ?? 0)); 
 
-    for (const chat of loadedChats) {
+    for (const chat of chats) {
+
+        chat.chatId = chat.chatId.replaceAll("@", "_").replaceAll(".", "_").replaceAll("+", "_");
 
         const baseChat = q("#basechat");
         const cloned = baseChat.cloneNode(true);
@@ -341,6 +350,9 @@ function constructChatList() {
         platform.style.color = "#ffffff";
         if (chat.module == "discord") {
             platform.style.color = "#5865f2";
+        }
+        if (chat.module == "whatsapp") {
+            platform.style.color = "#25d366";
         }
 
         cloned.querySelector("#basechat-name").innerText = chat.chatName;

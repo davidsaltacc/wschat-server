@@ -71,6 +71,7 @@ class Store {
         socket.ev.on("messages.update", updates => {
 
             for (const update of updates) {
+                this._messages[normalizeJid(update.key.remoteJid)] ??= {};
                 const newMessage = this._messages[normalizeJid(update.key.remoteJid)][update.key] = {
                     ...this._messages[normalizeJid(update.key.remoteJid)][update.key],
                     ...update.update
@@ -89,7 +90,9 @@ class Store {
                 delete this._messages[jid];
             } else {
                 for (const key of keys) {
-                    delete this._messages[normalizeJid(key.remoteJid)][key];
+                    if (key && this._messages[normalizeJid(key.remoteJid)]) {
+                        delete this._messages[normalizeJid(key.remoteJid)][key];
+                    }
                 }
             }
 
@@ -97,7 +100,7 @@ class Store {
 
         socket.ev.on("chats.upsert", newChats => {
             for (const chat of newChats) {
-                this._chats[normalizeJid(chat.newJid)] = chat;
+                this._chats[normalizeJid(chat.id)] = chat;
             }
         });
 
@@ -129,17 +132,20 @@ class Store {
     }
 
     getLatestMessage(jid) {
-        const keys = this._messages[normalizeJid(jid)].keys();
+        if (!this._messages[normalizeJid(jid)]) {
+            return null;
+        }
+        const keys = Object.keys(this._messages[normalizeJid(jid)]);
         keys.sort((a, b) => (this._messages[normalizeJid(jid)][b].messageTimestamp ?? 0) - (this._messages[normalizeJid(jid)][a].messageTimestamp ?? 0));
         return this._messages[normalizeJid(jid)][keys[0]];
     }
     
     getAllMessageKeysInChat(jid) {
-        return this._messages[normalizeJid(jid)].keys();
+        return Object.keys(this._messages[normalizeJid(jid)]);
     }
     
     getAllMessagesInChat(jid) {
-        return this._messages[normalizeJid(jid)].values();
+        return Object.values(this._messages[normalizeJid(jid)]);
     }
 
     setMessage(message) {
@@ -151,11 +157,11 @@ class Store {
     }
 
     setChat(chat) {
-        this._chats[normalizeJid(chat.newJid)] = chat;
+        this._chats[normalizeJid(chat.id)] = chat;
     }
 
     getAllChats() {
-        return this._chats.values();
+        return Object.values(this._chats);
     } 
 
     getContact(id) {
@@ -172,7 +178,7 @@ class Store {
 
     saveToDisk() { // we have to save whatsapp chats to disk, because unlike with discord we can't just really simply re-fetch some stuff as whatsapp is quite a bit stricter
 
-        if (existsSync("states/whatsapp")) {
+        if (!existsSync("states/whatsapp")) {
             mkdirSync("states/whatsapp", { recursive: true });
         }
 
@@ -214,13 +220,15 @@ class Store {
 
         for (const jid in this._messages) {
 
-            const keys = this._messages[jid].keys();
+            const keys = Object.keys(this._messages[jid]);
 
-            keys.sort((a, b) => (this._messages[jid][b].messageTimestamp ?? 0) - (this._messages[jid][a].messageTimestamp ?? 0));
-            const deleted = keys.slice(amount - 1, null);
-            
-            for (const deletedKey of deleted) {
-                delete this._messages[jid][deletedKey];
+            if (keys) {
+                keys.sort((a, b) => (this._messages[jid][b].messageTimestamp ?? 0) - (this._messages[jid][a].messageTimestamp ?? 0));
+                const deleted = keys.slice(amount - 1, null);
+                
+                for (const deletedKey of deleted) {
+                    delete this._messages[jid][deletedKey];
+                }
             }
 
         }
@@ -366,24 +374,35 @@ export class WhatsAppChatModule extends ChatModule {
 
             const done = () => {
 
-                const save = () => {
-                    store.purgeMessagesExceptLatest(100);
-                    store.saveToDisk();
+                const save = (exit, err) => {
+                    try {
+                        store.purgeMessagesExceptLatest(100);
+                        store.saveToDisk();
+                        if (err) {
+                            logger.error(err, "uncaught exception");
+                        }
+                        if (exit) {
+                            process.exit(0);
+                        }
+                    } catch (e) {
+                        logger.error(e, "encountered exception while saving whatsapp state");
+                    }
                 };
                 
-                sock.saveInterval = setInterval(() => save, 15_000);
+                sock.saveInterval = setInterval(() => save(false, null), 15_000);
 
-                process.on("exit", save);
-                process.on("SIGINT", save);
-                process.on("SIGUSR1", save);
-                process.on("SIGUSR2", save);
-                process.on("uncaughtException", save);
+                process.on("exit", () => save(true));
+                process.on("SIGINT", () => save(true));
+                process.on("SIGUSR1", () => save(true));
+                process.on("SIGUSR2", () => save(true));
+                process.on("uncaughtException", e => save(true, e));
 
                 onSuccess();
 
             };
 
             sock.restartTries = 0;
+            let syncInProgress = false;
 
             sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
 
@@ -436,7 +455,9 @@ export class WhatsAppChatModule extends ChatModule {
                             sock.restartTries = 0;
                         }
 
-                        if (sock.store.existsOnDisk()) {
+                        logger.info("waiting 5 seconds for any history sync, then resuming");
+                        await new Promise((res, _) => setTimeout(res, 5000));
+                        if (!syncInProgress) {
                             done();
                         }
  
@@ -451,11 +472,13 @@ export class WhatsAppChatModule extends ChatModule {
 
             sock.ev.on("messaging-history.set", async ({ chats, contacts, messages, isLatest, progress, syncType }) => {
 
+                syncInProgress = true;
+
                 if (progress) {
                     logger.info("whatsapp sync progress at " + progress);
                 }
         
-                if (progress === 100 && !sock.store.existsOnDisk()) {
+                if (progress === 100 && syncInProgress) {
                     done();
                 }
         
@@ -480,7 +503,7 @@ export class WhatsAppChatModule extends ChatModule {
             });
 
             store.listenMessageUpdate(message => {
-                this._fireEvent("messageUpdated", update.key.id, normalizeJid(update.key.remoteJid), this.messageToWSCMessage(message));
+                this._fireEvent("messageUpdated", message?.key?.id, normalizeJid(message?.key?.remoteJid), this.messageToWSCMessage(message));
             });
 
             sock.ev.on("messages.delete", ({ keys, jid, all }) => {
@@ -519,7 +542,7 @@ export class WhatsAppChatModule extends ChatModule {
     }
 
     async fetchAllChats() { 
-        return this.sock.store.getAllChats().map(chat => new Chat(normalizeJid(chat.newJid), chat.displayName ?? chat.name, this.sock.store.getLatestMessage(chat.newJid), true, true));
+        return this.sock.store.getAllChats().map(chat => new Chat(normalizeJid(chat.id), chat.displayName ?? chat.name, this.sock.store.getLatestMessage(chat.id), true, true));
     }
 
     async fetchMessagesInChat(chatId) {
@@ -558,7 +581,7 @@ export class WhatsAppChatModule extends ChatModule {
         if (message.message?.extendedTextMessage?.contextInfo?.quotedMessage) { content += "<in reply to another message>\n"; }
         content += message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? "";
 
-        return new Message(JSON.stringify(message.key), normalizeJid(message.key.remoteJid), message.key.participant, this.sock.store.getContact(message.key.participant).name ?? message.pushName, content, new Date(message.messageTimestamp));
+        return new Message(JSON.stringify(message.key), normalizeJid(message.key?.remoteJid), message.key?.participant, this.sock.store.getContact(message.key?.participant)?.name ?? message.pushName, content, new Date(message.messageTimestamp));
     }
 
     getId() {
