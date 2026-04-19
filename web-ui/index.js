@@ -85,12 +85,13 @@ function constructChatMessages(chat) {
 
     clearMessages();
 
-    chat = chat.slice();
-    chat.messages.sort((a, b) => (b.date ?? 0) - (a.date ?? 0));
+    let messages = structuredClone(chat.messages);
+    messages.sort((a, b) => (b.date ?? 0) - (a.date ?? 0));
 
-    for (const message of chat.messages) {
+    for (const message of messages) {
 
-        message.messageId = message.messageId.replaceAll("@", "_").replaceAll(".", "_").replaceAll("+", );
+        let _originalId = message.messageId;
+        message.messageId = message.messageId.replaceAll("@", "_").replaceAll(".", "_").replaceAll("+", ).replaceAll("{", "_").replaceAll("}", "_").replaceAll("\"", "_").replaceAll(":", "_").replaceAll(",", "_");
 
         const baseMessage = q("#basemessage");
         const cloned = baseMessage.cloneNode(true);
@@ -144,7 +145,7 @@ function constructChatMessages(chat) {
                     data: {
                         chatId: chat.chatId,
                         module: chat.module,
-                        messageId: message.messageId
+                        messageId: _originalId
                     }
                 }));
     
@@ -185,7 +186,7 @@ function constructChatMessages(chat) {
                             data: {
                                 chatId: chat.chatId,
                                 module: chat.module,
-                                messageId: message.messageId
+                                messageId: _originalId
                             }
                         }));
 
@@ -196,7 +197,7 @@ function constructChatMessages(chat) {
                             data: {
                                 chatId: chat.chatId,
                                 module: chat.module,
-                                messageId: message.messageId,
+                                messageId: _originalId,
                                 newContent: editBox.value
                             }
                         }));
@@ -327,12 +328,13 @@ function constructChatList() {
     
     loadingChats.style.display = "none";
 
-    let chats = loadedChats.slice();
+    let chats = structuredClone(loadedChats);
     chats.sort((a, b) => (b.lastMessage?.date ?? 0) - (a.lastMessage?.date ?? 0)); 
 
     for (const chat of chats) {
 
-        chat.chatId = chat.chatId.replaceAll("@", "_").replaceAll(".", "_").replaceAll("+", "_");
+        let _originalId = chat.chatId;
+        chat.chatId = chat.chatId.replaceAll("@", "_").replaceAll(".", "_").replaceAll("+", ).replaceAll("{", "_").replaceAll("}", "_").replaceAll("\"", "_").replaceAll(":", "_").replaceAll(",", "_");
 
         const baseChat = q("#basechat");
         const cloned = baseChat.cloneNode(true);
@@ -342,7 +344,7 @@ function constructChatList() {
         cloned.classList.add("chat");
         cloned.id = "chat-" + chat.chatId;
 
-        cloned.onclick = () => openChat(chat.chatId);
+        cloned.onclick = () => openChat(_originalId);
 
         const platform = cloned.querySelector("#basechat-platform");
         platform.innerText = chat.module;

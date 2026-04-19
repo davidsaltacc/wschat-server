@@ -22,12 +22,36 @@ function normalizeJid(jid) {
 
 }
 
+function stringifyJSONMap(input) {
+    return JSON.stringify(input, (key, value) => {
+        if (value instanceof Map) {
+            return {
+                dataType: "Map",
+                value: Array.from(value.entries()),
+            };
+        } else {
+            return value;
+        }
+    });
+}
+
+function parseJSONMap(input) {
+    return JSON.parse(input, (key, value) => {
+        if (typeof value === "object" && value !== null) {
+            if (value.dataType === "Map") {
+                return new Map(value.value);
+            }
+        }
+        return value;
+    });
+}
+
 class Store {
 
     constructor() {
-        this._messages = {};
-        this._chats = {};
-        this._contacts = {};
+        this._messages = new Map();
+        this._chats = new Map();
+        this._contacts = new Map();
         this._messageUpdateListeners = [];
     }
     
@@ -43,16 +67,18 @@ class Store {
 		}) => {
 
             for (const message of newMessages) {
-				this._messages[normalizeJid(message.key.remoteJid)] ??= {};
-                this._messages[normalizeJid(message.key.remoteJid)][message.key] = message;
+                if (!this._messages.has(normalizeJid(message.key.remoteJid))) {
+                    this._messages.set(normalizeJid(message.key.remoteJid), new Map());
+                }
+                this._messages.get(normalizeJid(message.key.remoteJid)).set(message.key, message);
 			}
 
             for (const chat of newChats) {
-				this._chats[chat.id] = chat;
+                this._chats.set(chat.id, chat);
 			}
             
             for (const contact of newContacts) {
-				this._contacts[contact.id] = contact;
+                this._contacts.set(contact.id, contact);
 			}
 
         });
@@ -61,8 +87,10 @@ class Store {
             if (type == "notify") {
 
                 for (const message of messages) {
-                    this._messages[normalizeJid(message.key.remoteJid)] ??= {};
-                    this._messages[normalizeJid(message.key.remoteJid)][message.key] = message;
+                    if (!this._messages.has(normalizeJid(message.key.remoteJid))) {
+                        this._messages.set(normalizeJid(message.key.remoteJid), new Map());
+                    }
+                    this._messages.get(normalizeJid(message.key.remoteJid)).set(message.key, message);
 				}
 
             }
@@ -71,11 +99,14 @@ class Store {
         socket.ev.on("messages.update", updates => {
 
             for (const update of updates) {
-                this._messages[normalizeJid(update.key.remoteJid)] ??= {};
-                const newMessage = this._messages[normalizeJid(update.key.remoteJid)][update.key] = {
-                    ...this._messages[normalizeJid(update.key.remoteJid)][update.key],
+                if (!this._messages.has(normalizeJid(update.key.remoteJid))) {
+                    this._messages.set(normalizeJid(update.key.remoteJid), new Map());
+                }
+                const newMessage = {
+                    ...this._messages.get(normalizeJid(update.key.remoteJid)).get(update.key),
                     ...update.update
                 };
+                this._messages.get(normalizeJid(update.key.remoteJid)).set(update.key, newMessage);
 
                 for (const listener of this._messageUpdateListeners) {
                     listener(newMessage);
@@ -87,11 +118,11 @@ class Store {
         socket.ev.on("messages.delete", ({ keys, jid, all }) => {
 
             if (all) {
-                delete this._messages[jid];
+                this._messages.delete(normalizeJid(jid));
             } else {
                 for (const key of keys) {
-                    if (key && this._messages[normalizeJid(key.remoteJid)]) {
-                        delete this._messages[normalizeJid(key.remoteJid)][key];
+                    if (key && this._messages.has(normalizeJid(key.remoteJid))) {
+                        this._messages.get(normalizeJid(key.remoteJid)).delete(key);
                     }
                 }
             }
@@ -100,76 +131,76 @@ class Store {
 
         socket.ev.on("chats.upsert", newChats => {
             for (const chat of newChats) {
-                this._chats[normalizeJid(chat.id)] = chat;
+                this._chats.set(normalizeJid(chat.id), chat);
             }
         });
 
         socket.ev.on("chats.delete", ids => {
             for (const id of ids) {
-                delete this._chats[id];
+                this._chats.delete(normalizeJid(id));
             }
         });
 
         socket.ev.on("contacts.upsert", contacts => {
             for (const contact of contacts) {
-				this._contacts[contact.id] = contact;
+                this._contacts.set(normalizeJid(contact.id), contact);
             }
         });
 
         socket.ev.on("contacts.update", contacts => {
             for (const contact of contacts) {
-				this._contacts[contact.id] = {
-                    ...this._contacts[contact.id],
+				this._contacts.set(normalizeJid(contact.id), {
+                    ...this._contacts.get(normalizeJid(contact.id)),
                     ...contact
-                }
+                });
             }
         });
 
     }
 
     getMessage(key) {
-        return this._messages[normalizeJid(key.remoteJid)][key];
+        return this._messages.get(normalizeJid(key.remoteJid)).get(key);
     }
 
     getLatestMessage(jid) {
-        if (!this._messages[normalizeJid(jid)]) {
+        if (!this._messages.has(normalizeJid(jid))) {
             return null;
         }
-        const keys = Object.keys(this._messages[normalizeJid(jid)]);
-        keys.sort((a, b) => (this._messages[normalizeJid(jid)][b].messageTimestamp ?? 0) - (this._messages[normalizeJid(jid)][a].messageTimestamp ?? 0));
-        return this._messages[normalizeJid(jid)][keys[0]];
+        const keys = Array.from(this._messages.get(normalizeJid(jid)).keys()); 
+        keys.sort((a, b) => (this._messages.get(normalizeJid(jid)).get(b).messageTimestamp ?? 0) - (this._messages.get(normalizeJid(jid)).get(a).messageTimestamp ?? 0));
+        return this._messages.get(normalizeJid(jid)).get(keys[0]);
     }
     
     getAllMessageKeysInChat(jid) {
-        return Object.keys(this._messages[normalizeJid(jid)]);
+        return Array.from(this._messages.get(normalizeJid(jid))?.keys() ?? []);
     }
     
     getAllMessagesInChat(jid) {
-        return Object.values(this._messages[normalizeJid(jid)]);
+        return Array.from(this._messages.get(normalizeJid(jid))?.values() ?? []);
     }
 
     setMessage(message) {
-        this._messages[normalizeJid(message.key.remoteJid)][message.key] = message;
+        this._messages.get(normalizeJid(message.key.remoteJid)).set(message.key, message);
     }
 
     getChat(jid) {
-        return this._chats[normalizeJid(jid)];
+        return this._chats.get(normalizeJid(jid));
     }
 
     setChat(chat) {
-        this._chats[normalizeJid(chat.id)] = chat;
+        this._chats.set(normalizeJid(chat.id), chat);
     }
 
     getAllChats() {
-        return Object.values(this._chats);
+        return Array.from(this._chats.values());
     } 
 
     getContact(id) {
-        return this._contacts[id];
+        return this._contacts.get(normalizeJid(id));
     }
 
     setContact(contact) {
-        this._contacts[contact.id] = contact;
+        this._contacts.set(normalizeJid(contact.id), contact);
     }
 
     existsOnDisk() {
@@ -182,9 +213,9 @@ class Store {
             mkdirSync("states/whatsapp", { recursive: true });
         }
 
-        writeFileSync("states/whatsapp/chats.json", JSON.stringify(this._chats));
-        writeFileSync("states/whatsapp/messages.json", JSON.stringify(this._messages));
-        writeFileSync("states/whatsapp/contacts.json", JSON.stringify(this._contacts));
+        writeFileSync("states/whatsapp/chats.json", stringifyJSONMap(this._chats));
+        writeFileSync("states/whatsapp/messages.json", stringifyJSONMap(this._messages));
+        writeFileSync("states/whatsapp/contacts.json", stringifyJSONMap(this._contacts));
 
     }
 
@@ -192,7 +223,7 @@ class Store {
 
         try {
             if (existsSync("states/whatsapp/chats.json")) {
-                this._chats = JSON.parse(readFileSync("states/whatsapp/chats.json"));
+                this._chats = parseJSONMap(readFileSync("states/whatsapp/chats.json"));
             }
         } catch (e) {
             logger.error(e, "failed to load chats");
@@ -200,7 +231,7 @@ class Store {
 
         try {
             if (existsSync("states/whatsapp/messages.json")) {
-                this._messages = JSON.parse(readFileSync("states/whatsapp/messages.json"));
+                this._messages = parseJSONMap(readFileSync("states/whatsapp/messages.json"));
             }
         } catch (e) {
             logger.error(e, "failed to load messages");
@@ -208,7 +239,7 @@ class Store {
 
         try {
             if (existsSync("states/whatsapp/contacts.json")) {
-                this._contacts = JSON.parse(readFileSync("states/whatsapp/contacts.json"));
+                this._contacts = parseJSONMap(readFileSync("states/whatsapp/contacts.json"));
             }
         } catch (e) {
             logger.error(e, "failed to load contacts");
@@ -218,16 +249,16 @@ class Store {
 
     purgeMessagesExceptLatest(amount) {
 
-        for (const jid in this._messages) {
+        for (const jid in Array.from(this._messages.keys())) {
 
-            const keys = Object.keys(this._messages[jid]);
+            const keys = Array.from(this._messages.get(jid)?.keys() ?? []);
 
-            if (keys) {
-                keys.sort((a, b) => (this._messages[jid][b].messageTimestamp ?? 0) - (this._messages[jid][a].messageTimestamp ?? 0));
+            if (keys.length > 0) {
+                keys.sort((a, b) => (this._messages.get(jid).get(b).messageTimestamp ?? 0) - (this._messages.get(jid).get(a).messageTimestamp ?? 0));
                 const deleted = keys.slice(amount - 1, null);
                 
                 for (const deletedKey of deleted) {
-                    delete this._messages[jid][deletedKey];
+                    this._messages.get(jid).delete(deletedKey);
                 }
             }
 
@@ -249,6 +280,9 @@ export class WhatsAppChatModule extends ChatModule {
             rmSync("auths/whatsapp_auth_state", { recursive: true });
         }
         mkdirSync("auths/whatsapp_auth_state");
+        if (existsSync("states/whatsapp")) {
+            rmSync("states/whatsapp", { recursive: true });
+        }
 
         let sock = await this.makeSock(true);
 
@@ -542,7 +576,7 @@ export class WhatsAppChatModule extends ChatModule {
     }
 
     async fetchAllChats() { 
-        return this.sock.store.getAllChats().map(chat => new Chat(normalizeJid(chat.id), chat.displayName ?? chat.name, this.sock.store.getLatestMessage(chat.id), true, true));
+        return this.sock.store.getAllChats().map(chat => new Chat(normalizeJid(chat.id), chat.displayName ?? chat.name, this.messageToWSCMessage(this.sock.store.getLatestMessage(chat.id)), true, true));
     }
 
     async fetchMessagesInChat(chatId) {
@@ -569,6 +603,10 @@ export class WhatsAppChatModule extends ChatModule {
      * @param {import("baileys").WAMessage} message 
      */
     messageToWSCMessage(message) {
+
+        if (!message) {
+            return null;
+        }
 
         let content = "";
 
