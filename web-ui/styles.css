@@ -2,6 +2,9 @@
 body {
     background-color: #131313; 
     color: #ffffff;
+}
+
+body, button, input[type=text], input[type=url], input[type=password] {
     font-family: "Courier New", Courier, monospace;
 }
 
@@ -22,7 +25,6 @@ input[type=text], input[type=url], input[type=password] {
 
 button, input[type=text], input[type=url], input[type=password] {
     color: #ffffff;
-    font-family: "Courier New", Courier, monospace;
     background-color: #222222; 
     border: 1px solid #ffffff4f;
     border-radius: 4px;
