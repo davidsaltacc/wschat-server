@@ -46,6 +46,24 @@ function parseJSONMap(input) {
     });
 }
 
+function assignDefined(target, ...sources) {
+    if (!target) {
+        target = {};
+    }
+    for (let source of sources) {
+        if (!source) {
+            source = {};
+        }
+        for (const key of Object.keys(source)) {
+            const val = source[key];
+            if (val !== undefined) {
+                target[key] = val;
+            }
+        }
+    }
+    return target;
+}
+
 class Store {
 
     constructor() {
@@ -74,17 +92,11 @@ class Store {
 			}
 
             for (const chat of newChats) {
-                this._chats.set(normalizeJid(chat.id), {
-                    ...this._chats.get(normalizeJid(chat.id)),
-                    ...chat
-                });
+                this._chats.set(normalizeJid(chat.id), assignDefined(this._chats.get(normalizeJid(chat.id)) ?? {}, chat));
 			}
             
             for (const contact of newContacts) {
-                this._contacts.set(normalizeJid(contact.id), {
-                    ...this._contacts.get(normalizeJid(contact.id)),
-                    ...contact
-                });
+                this._contacts.set(normalizeJid(contact.id), assignDefined(this._contacts.get(normalizeJid(contact.id)) ?? {}, contact));
 			}
 
         });
@@ -108,10 +120,8 @@ class Store {
                 if (!this._messages.has(normalizeJid(update.key.remoteJid))) {
                     this._messages.set(normalizeJid(update.key.remoteJid), new Map());
                 }
-                const newMessage = {
-                    ...this._messages.get(normalizeJid(update.key.remoteJid)).get(update.key),
-                    ...update.update
-                };
+                const newMessage = assignDefined(this._messages.get(normalizeJid(update.key.remoteJid)).get(update.key), update.update);
+
                 this._messages.get(normalizeJid(update.key.remoteJid)).set(update.key, newMessage);
 
                 for (const listener of this._messageUpdateListeners) {
@@ -137,7 +147,7 @@ class Store {
 
         socket.ev.on("chats.upsert", newChats => {
             for (const chat of newChats) {
-                this._chats.set(normalizeJid(chat.id), chat);
+                this._chats.set(normalizeJid(chat.id), assignDefined(this._chats.get(normalizeJid(chat.id)) ?? {}, chat));
             }
         });
 
@@ -149,16 +159,13 @@ class Store {
 
         socket.ev.on("contacts.upsert", contacts => {
             for (const contact of contacts) {
-                this._contacts.set(normalizeJid(contact.id), contact);
+                this._contacts.set(normalizeJid(contact.id), assignDefined(this._contacts.get(normalizeJid(contact.id)) ?? {}, contact));
             }
         });
 
         socket.ev.on("contacts.update", contacts => {
             for (const contact of contacts) {
-				this._contacts.set(normalizeJid(contact.id), {
-                    ...this._contacts.get(normalizeJid(contact.id)),
-                    ...contact
-                });
+                this._contacts.set(normalizeJid(contact.id), assignDefined(this._contacts.get(normalizeJid(contact.id)) ?? {}, contact));
             }
         });
 
@@ -586,7 +593,7 @@ export class WhatsAppChatModule extends ChatModule {
     }
 
     async fetchUserInfo(userId) {
-        return new Person(userId, this.sock.store.getContact(userId)?.name, "", await this.sock.fetchStatus([ userId ])[0].toString(), new Date(0));
+        return new Person(userId, this.sock.store.getContact(userId)?.name, "", await this.sock.fetchStatus([ userId ])[0]?.toString(), new Date(0));
     }
 
     sendMessage(chatId, content) {
@@ -621,7 +628,15 @@ export class WhatsAppChatModule extends ChatModule {
         if (message.message?.extendedTextMessage?.contextInfo?.quotedMessage) { content += "<in reply to another message>\n"; }
         content += message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? "";
 
-        return new Message(JSON.stringify(message.key), normalizeJid(message.key?.remoteJid), message.key?.participant, this.sock.store.getContact(message.key?.participant)?.name ?? message.pushName, content, new Date(parseInt(message.messageTimestamp) * 1000));
+        const isGroup = normalizeJid(message.key?.remoteJid)?.indexOf("s.whatsapp.net") < 0;
+        const senderId = isGroup ? message.key?.participant : (
+            message.key?.fromMe ? 
+                this.sock.user.id :
+                message.key?.remoteJid
+        );
+        const senderContact = message.key?.fromMe ? this.sock.user : this.sock.store.getContact(senderId); 
+
+        return new Message(JSON.stringify(message.key), normalizeJid(message.key?.remoteJid), senderId, senderContact?.name ?? senderContact?.notify ?? message.pushName, content, new Date(parseInt(message.messageTimestamp) * 1000));
     }
 
     getId() {
